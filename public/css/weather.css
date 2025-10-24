@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #4c1d95 0%, #1e40af 50%, #047857 100%);
+  min-height: 100vh;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.gradient-button {
+  background: linear-gradient(135deg, #8b5cf6 0%, #10b981 100%);
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.gradient-button:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #059669 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
+}
+
+.history-chip {
+  background: linear-gradient(135deg, #e9d5ff 0%, #a7f3d0 100%);
+  border-radius: 24px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  color: #4c1d95;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  display: block; /* full-width pill */
+  width: 100%;
+  text-align: center;
+}
+
+.history-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+.weather-icon {
+  width: 100px;
+  height: 100px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+.detail-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #faf5ff 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  padding: 1.5rem;
+}
+
+.temp-display {
+  font-size: 4rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #8b5cf6 0%, #10b981 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+}
+
+.city-name {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.weather-desc {
+  color: #64748b;
+  font-size: 1.25rem;
+}
+
+/* Scrollable history container - 250px height */
+.scrollable-history {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Custom scrollbar for history */
+.scrollable-history::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-history::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 10px;
+}
+
+.scrollable-history::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #8b5cf6 0%, #10b981 100%);
+  border-radius: 10px;
+}
+
+.scrollable-history::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #059669 100%);
+}
+
+/* Autosuggest dropdown styles to match the weather theme */
+.city-suggestions {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.city-suggestions button {
+  background: linear-gradient(135deg, rgba(233,213,255,0.9) 0%, rgba(167,243,208,0.9) 100%);
+  border: none;
+  padding: 10px 14px;
+  display: block;
+  width: 100%;
+  text-align: left;
+  color: #0f172a;
+}
+
+.city-suggestions button:hover {
+  background: linear-gradient(135deg, rgba(216,180,254,0.95) 0%, rgba(34,197,94,0.95) 100%);
+}
+
+/* Team background for history items */
+.team-bg {
+  background: linear-gradient(135deg, rgba(79,70,229,0.06) 0%, rgba(14,165,233,0.04) 100%);
+  border: 1px solid rgba(79,70,229,0.12);
+}
+
+.history-item {
+  padding: 0.75rem;
+  border-radius: 12px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.history-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(15,23,42,0.06);
+}
+
+/* Fix for search form on medium screens */
+@media (max-width: 1037px) {
+  #weather-form {
+    flex-direction: column;
+  }
+  
+  #weather-form input {
+    margin-bottom: 0.5rem;
+  }
+  
+  .glass-card {
+    padding: 1rem;
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1038px) {
+  .container-xl {
+    max-width: 1280px;
+  }
+  
+  .temp-display {
+    font-size: 5rem;
+  }
+  
+  .city-name {
+    font-size: 2rem;
+  }
+  
+  .weather-icon {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .glass-card {
+    padding: 2rem;
+  }
+  
+  .detail-card {
+    padding: 2rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container-2xl {
+    max-width: 1536px;
+  }
+  
+  .temp-display {
+    font-size: 6rem;
+  }
+  
+  .city-name {
+    font-size: 2.25rem;
+  }
+  
+  .weather-icon {
+    width: 140px;
+    height: 140px;
+  }
+}

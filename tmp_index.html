@@ -1,0 +1,208 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Users — CRUD</title>
+
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="csrf-token" content="rNNsKLkfXTWpxVmaH2lh5e63Xw7Gd4gEiumUwWmG">
+
+    <!-- Project CSS -->
+    <link rel="stylesheet" href="http://127.0.0.1:8000/css/crud.css">
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="min-h-screen flex items-start justify-center py-10">
+        <div class="w-full max-w-screen-lg px-4">
+            <!-- Floating card -->
+            <div class="crud-container overflow-hidden">
+                <div class="crud-head-wrap">
+                    <div class="crud-head-left">
+                        <div class="hs-dropdown perpage-wrap" style="position:relative">
+                            <button id="perpage-toggle" type="button" class="per-page-pill hs-dropdown-toggle" data-perpage-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Per page">
+                                <span class="pill-icon"><i class="fa fa-eye"></i></span>
+                                <span id="perpage-label">5 Records</span>
+                                <svg class="size-4 ml-2" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </button>
+
+                            <div class="hidden perpage-dropdown hs-dropdown-menu" data-perpage-dropdown role="menu" aria-orientation="vertical" aria-labelledby="perpage-toggle">
+                                <ul class="p-1 space-y-0.5">
+                                    <li class="perpage-item" data-perpage="5">5 Records</li>
+                                    <li class="perpage-item" data-perpage="10">10 Records</li>
+                                    <li class="perpage-item" data-perpage="25">25 Records</li>
+                                    <li class="perpage-item" data-perpage="50">50 Records</li>
+                                    <li class="perpage-item" data-perpage="100">100 Records</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3" style="display:flex; align-items:center; gap:12px;">
+                        <div class="search-box">
+                            <input id="crud-search" type="text" placeholder="Search..." class="search-input" data-search-input />
+                            <button type="button" class="search-btn" data-search-btn aria-label="Search">
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </div>
+
+                        <div class="relative">
+                            <button type="button" class="gear-btn" data-gear-toggle aria-haspopup="true" aria-expanded="false" aria-label="Settings">
+                                <i class="fa fa-cog"></i>
+                            </button>
+
+                            <div class="hidden gear-dropdown" data-gear-dropdown role="menu" aria-hidden="true" aria-orientation="vertical" aria-labelledby="gear-toggle">
+                                <div class="gear-dropdown-inner">
+                                    <button type="button" class="gear-item" data-action="create"><i class="fa fa-plus gear-item-icon"></i> Create</button>
+                                    <button type="button" class="gear-item" data-action="view"><i class="fa fa-eye gear-item-icon"></i> View</button>
+                                    <button type="button" class="gear-item" data-action="edit"><i class="fa fa-edit gear-item-icon"></i> Edit</button>
+                                    <button type="button" class="gear-item" data-action="trash"><i class="fa fa-trash gear-item-icon"></i> Trash</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="crud-inner">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left w-12">
+                                        <input type="checkbox" id="select-all" data-select-all />
+                                    </th>
+                                    <th class="px-4 py-3 text-left">First Name</th>
+                                    <th class="px-4 py-3 text-left">Last Name</th>
+                                    <th class="px-4 py-3 text-left">Image</th>
+                                    <th class="px-4 py-3 text-left">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crud-table-body" class="bg-white divide-y divide-gray-200 whitespace-nowrap">
+                                <!-- rows injected by public/js/crud.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t flex items-center justify-between">
+                    <div id="crud-pagination-info" class="text-sm text-gray-600">Showing 0 to 0 of 0 entries</div>
+                    <div id="crud-pagination" class="flex items-center space-x-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include modal partials -->
+    <!-- resources/views/modal/create.blade.php -->
+<div id="modal-create" class="hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="crud-modal-backdrop" data-modal-backdrop data-modal="create">
+        <div class="crud-modal" role="document">
+            <div class="crud-modal-header bg-blue">
+                <h3 id="modal-create-title" class="text-lg font-semibold">Create</h3>
+                <button type="button" data-modal-close="create" aria-label="Close">&times;</button>
+            </div>
+            <div class="crud-modal-body">
+                <form id="form-create" enctype="multipart/form-data" novalidate>
+                    <div class="mb-3">
+                        <label class="block text-sm">First Name</label>
+                        <input id="create-firstname" name="firstname" type="text" class="border rounded px-3 py-2 w-full" data-validate />
+                        <p class="form-error hidden" data-error-for="firstname" aria-live="polite"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm">Last Name</label>
+                        <input id="create-lastname" name="lastname" type="text" class="border rounded px-3 py-2 w-full" data-validate />
+                        <p class="form-error hidden" data-error-for="lastname" aria-live="polite"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm">Image (optional)</label>
+                        <input id="create-image" name="image" type="file" class="border rounded px-3 py-2 w-full" accept="image/*" />
+                        <div id="create-image-preview" class="img-preview" aria-hidden="true"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="crud-modal-footer">
+                <button type="button" class="px-4 py-2 bg-gray-200 rounded" data-modal-close="create">Cancel</button>
+                <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded" id="create-save">Save</button>
+            </div>
+        </div>
+    </div>
+</div>    <!-- resources/views/modal/view.blade.php -->
+<div id="modal-view" class="hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="crud-modal-backdrop" data-modal-backdrop data-modal="view">
+        <div class="crud-modal" role="document">
+            <div class="crud-modal-header bg-blue">
+                <h3 id="modal-view-title" class="text-lg font-semibold">View</h3>
+                <button type="button" data-modal-close="view" aria-label="Close">&times;</button>
+            </div>
+            <div class="crud-modal-body">
+                <div id="view-content" aria-live="polite">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+            <div class="crud-modal-footer">
+                <button type="button" class="px-4 py-2 bg-gray-200 rounded" data-modal-close="view">Close</button>
+            </div>
+        </div>
+    </div>
+</div>    <!-- resources/views/modal/edit.blade.php -->
+<div id="modal-edit" class="hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="crud-modal-backdrop" data-modal-backdrop data-modal="edit">
+        <div class="crud-modal" role="document">
+            <div class="crud-modal-header bg-blue">
+                <h3 id="modal-edit-title" class="text-lg font-semibold">Edit</h3>
+                <button type="button" data-modal-close="edit" aria-label="Close">&times;</button>
+            </div>
+            <div class="crud-modal-body">
+                <form id="form-edit" enctype="multipart/form-data" novalidate>
+                    <input type="hidden" name="id" />
+                    <div class="mb-3">
+                        <label class="block text-sm">First Name</label>
+                        <input id="edit-firstname" name="firstname" type="text" class="border rounded px-3 py-2 w-full" data-validate />
+                        <p class="form-error hidden" data-error-for="firstname" aria-live="polite"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm">Last Name</label>
+                        <input id="edit-lastname" name="lastname" type="text" class="border rounded px-3 py-2 w-full" data-validate />
+                        <p class="form-error hidden" data-error-for="lastname" aria-live="polite"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm">Image (optional)</label>
+                        <input id="edit-image" name="image" type="file" class="border rounded px-3 py-2 w-full" accept="image/*" />
+                        <div id="edit-image-preview" class="img-preview" aria-hidden="true"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="crud-modal-footer">
+                <button type="button" class="px-4 py-2 bg-gray-200 rounded" data-modal-close="edit">Cancel</button>
+                <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded" id="edit-save">Save</button>
+            </div>
+        </div>
+    </div>
+</div>    <!-- resources/views/modal/trash-confirm.blade.php -->
+<div id="modal-trash-confirm" class="hidden" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="crud-modal-backdrop" data-modal-backdrop data-modal="trash-confirm">
+        <div class="crud-modal" role="document">
+            <div class="crud-modal-header bg-blue">
+                <h3 id="modal-trash-title" class="text-lg font-semibold">Confirm Trash</h3>
+                <button type="button" data-modal-close="trash-confirm" aria-label="Close">&times;</button>
+            </div>
+            <div class="crud-modal-body">
+                <p id="trash-message">Are you sure you want to move the selected records to trash? This will soft-delete them.</p>
+            </div>
+            <div class="crud-modal-footer">
+                <button type="button" class="px-4 py-2 bg-gray-200 rounded" data-modal-close="trash-confirm">Cancel</button>
+                <button type="button" class="px-4 py-2 bg-red-600 text-white rounded" id="trash-confirm-btn">Trash</button>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Live region for screen reader announcements -->
+    <div id="crud-live-region" class="sr-only" aria-live="polite"></div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="http://127.0.0.1:8000/js/crud.js" defer></script>
+</body>
+</html>
+

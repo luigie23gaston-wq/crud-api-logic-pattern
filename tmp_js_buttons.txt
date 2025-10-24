@@ -1,0 +1,519 @@
+﻿// public/js/crud.js
+// Handles AJAX table loading, search, per-page, selection, gear actions, modals and toast notifications
+
+const Crud = (() => {
+    const state = {
+        perPage: 5,
+        page: 1,
+        search: '',
+        selected: new Set(),
+        total: 0,
+    };
+
+    // Helper: show toast in center
+    function toast(type, message) {
+        const id = 'crud-toast-' + Date.now();
+        const el = document.createElement('div');
+        el.id = id;
+        el.className = `crud-toast crud-toast-${type}`;
+        el.textContent = message;
+        document.body.appendChild(el);
+        setTimeout(() => {
+            el.classList.add('show');
+        }, 20);
+        setTimeout(() => {
+            el.classList.remove('show');
+            setTimeout(() => el.remove(), 300);
+        }, 2500);
+    }
+
+    function qs(sel, ctx = document) { return ctx.querySelector(sel); }
+    function qsa(sel, ctx = document) { return Array.from(ctx.querySelectorAll(sel)); }
+
+    function getCsrfToken() {
+        const m = document.querySelector('meta[name="csrf-token"]');
+        return m ? m.getAttribute('content') : '';
+    }
+
+    // global fetch wrapper to centralize headers and JSON validation handling
+    async function apiFetch(url, options = {}) {
+        options.headers = options.headers || {};
+        // accept JSON by default
+        if (!options.headers['Accept']) options.headers['Accept'] = 'application/json';
+        // include CSRF for state changing requests
+        if (!options.headers['X-CSRF-TOKEN'] && ['POST','PUT','PATCH','DELETE'].includes((options.method||'GET').toUpperCase())) {
+            options.headers['X-CSRF-TOKEN'] = getCsrfToken();
+        }
+
+        const res = await fetch(url, options);
+        if (res.status === 422) {
+            // return parsed json with a flag to caller
+            const json = await res.json();
+            const err = new Error('Validation'); err.type = 'validation'; err.payload = json; throw err;
+        }
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) return res.json();
+        return res.text();
+    }
+
+    function renderRows(data) {
+        const tbody = qs('#crud-table-body');
+        tbody.innerHTML = '';
+        data.data.forEach(rec => {
+            const tr = document.createElement('tr');
+            tr.dataset.id = rec.id;
+            tr.className = 'hover:bg-gray-50';
+            tr.innerHTML = `
+                <td class="px-4 py-3 checkbox-cell"><input type="checkbox" data-row-check data-id="${rec.id}" ${state.selected.has(rec.id) ? 'checked' : ''}></td>
+                <td class="px-4 py-3 whitespace-nowrap">${rec.firstname}</td>
+                <td class="px-4 py-3 whitespace-nowrap">${rec.lastname}</td>
+                <td class="px-4 py-3">${rec.image ? `<img src="/storage/${rec.image}" alt="" class="img-thumb">` : ''}</td>
+                <td class="px-4 py-3">
+                    <div class="action-set">
+                        <button class="crud-btn crud-btn-icon" data-inline-view="${rec.id}" title="View"><i class="fa fa-eye"></i></button>
+                        <button class="crud-btn crud-btn-icon" data-inline-edit="${rec.id}" title="Edit"><i class="fa fa-edit"></i></button>
+                        <button class="crud-btn crud-btn-icon" data-inline-trash="${rec.id}" title="Trash"><i class="fa fa-trash"></i></button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // pagination info
+        const from = (data.current_page - 1) * data.per_page + 1;
+        const to = Math.min(data.total, data.current_page * data.per_page);
+        qs('#crud-pagination-info').textContent = `Showing ${from} to ${to} of ${data.total} entries`;
+        state.total = data.total;
+        renderPagination(data);
+
+        attachRowListeners();
+    }
+
+    function renderPagination(data) {
+        const container = qs('#crud-pagination');
+        container.innerHTML = '';
+        const totalPages = data.last_page;
+        const current = data.current_page;
+
+        const prev = document.createElement('button');
+        prev.textContent = '<';
+        prev.disabled = current === 1;
+        prev.addEventListener('click', () => { state.page = Math.max(1, state.page - 1); load(); });
+        container.appendChild(prev);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const b = document.createElement('button');
+            b.textContent = i;
+            if (i === current) b.className = 'active-page';
+            b.addEventListener('click', () => { state.page = i; load(); });
+            container.appendChild(b);
+            if (i >= 10) break; // keep small for now
+        }
+
+        const next = document.createElement('button');
+        next.textContent = '>';
+        next.disabled = current === totalPages;
+        next.addEventListener('click', () => { state.page = Math.min(totalPages, state.page + 1); load(); });
+        container.appendChild(next);
+    }
+
+    function attachRowListeners() {
+        qsa('[data-row-check]').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const id = Number(cb.dataset.id);
+                if (cb.checked) state.selected.add(id); else state.selected.delete(id);
+                syncSelectAll();
+            });
+        });
+
+        qsa('[data-inline-view]').forEach(btn => { btn.addEventListener('click', () => openViewModal(btn.dataset.inlineView)); });
+        qsa('[data-inline-edit]').forEach(btn => { btn.addEventListener('click', () => document.dispatchEvent(new CustomEvent('crud:open-edit', { detail: { id: Number(btn.dataset.inlineEdit) } }))); });
+        qsa('[data-inline-trash]').forEach(btn => { btn.addEventListener('click', () => document.dispatchEvent(new CustomEvent('crud:open-trash', { detail: { ids: [Number(btn.dataset.inlineTrash)] } }))); });
+    }
+
+    function syncSelectAll() {
+        const all = qsa('#crud-table-body [data-row-check]').map(n => Number(n.dataset.id));
+        const checkedCount = state.selected.size;
+        const selectAll = qs('[data-select-all]');
+        if (!selectAll) return;
+        if (all.length > 0 && checkedCount === all.length) selectAll.checked = true; else selectAll.checked = false;
+    }
+
+    // load table data
+    async function load() {
+        const params = new URLSearchParams({ per_page: state.perPage, page: state.page, search: state.search });
+        try {
+            const res = await fetch(`/users?${params.toString()}`, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('Network error');
+            const data = await res.json();
+            renderRows(data);
+        } catch (err) {
+            console.error(err);
+            toast('error', 'Failed to load records');
+        }
+    }
+
+    // gear actions
+    function handleGear(action) {
+        if (action === 'create') {
+            // open create modal
+            const ev = new CustomEvent('crud:open-create'); document.dispatchEvent(ev);
+        } else if (action === 'view' || action === 'edit') {
+            if (state.selected.size !== 1) { toast('warning', 'Please select exactly 1 row'); return; }
+            const id = Array.from(state.selected)[0];
+            const evName = action === 'view' ? 'crud:open-view' : 'crud:open-edit';
+            document.dispatchEvent(new CustomEvent(evName, { detail: { id } }));
+        } else if (action === 'trash') {
+            if (state.selected.size === 0) { toast('warning', 'Please select at least one row'); return; }
+            document.dispatchEvent(new CustomEvent('crud:open-trash', { detail: { ids: Array.from(state.selected) } }));
+        }
+    }
+
+    // modals openers (these expect modal partials to listen for events and show themselves)
+    function openViewModal(id) { document.dispatchEvent(new CustomEvent('crud:open-view', { detail: { id } })); }
+
+    // modal show/hide helpers
+    function showModal(name, data = {}) {
+        const modal = document.getElementById(`modal-${name}`);
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        announce(`${name} modal opened`);
+        // populate view/edit data if provided
+        if (name === 'view' && data.id) populateView(data.id);
+        if (name === 'edit' && data.id) populateEdit(data.id);
+        if (name === 'trash' && data.ids) {
+            modal.dataset.ids = JSON.stringify(data.ids);
+        }
+    }
+
+    function hideModal(name) {
+        const modal = document.getElementById(`modal-${name}`);
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        announce(`${name} modal closed`);
+    }
+
+    // live region announce for screen readers
+    function announce(message) {
+        let lr = qs('#crud-live-region');
+        if (!lr) {
+            lr = document.createElement('div');
+            lr.id = 'crud-live-region';
+            lr.className = 'sr-only';
+            lr.setAttribute('aria-live', 'polite');
+            document.body.appendChild(lr);
+        }
+        lr.textContent = message;
+        // clear after a moment so repeated messages re-announce
+        setTimeout(() => { lr.textContent = ''; }, 2000);
+    }
+
+    // populate view modal
+    async function populateView(id) {
+        try {
+            const res = await fetch(`/users/${id}`, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('Not found');
+            const rec = await res.json();
+            const container = qs('#view-content');
+            container.innerHTML = `
+                <p><strong>First Name:</strong> ${rec.firstname}</p>
+                <p><strong>Last Name:</strong> ${rec.lastname}</p>
+                ${rec.image ? `<img src="/storage/${rec.image}" class="img-thumb mt-2" />` : ''}
+            `;
+        } catch (err) { toast('error', 'Failed to load record'); }
+    }
+
+    // populate edit modal
+    async function populateEdit(id) {
+        try {
+            const res = await fetch(`/users/${id}`, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('Not found');
+            const rec = await res.json();
+            const form = qs('#form-edit');
+            form.elements['id'].value = rec.id;
+            form.elements['firstname'].value = rec.firstname;
+            form.elements['lastname'].value = rec.lastname;
+            // set existing image preview if available
+            if (rec.image) {
+                const preview = qs('#edit-image-preview');
+                if (preview) {
+                    preview.innerHTML = `<img src="/storage/${rec.image}" alt="preview">`;
+                    preview.setAttribute('aria-hidden', 'false');
+                }
+            }
+        } catch (err) { toast('error', 'Failed to load record'); }
+    }
+
+    // submit create
+    async function submitCreate() {
+        const form = qs('#form-create');
+        clearFormErrors(form);
+        // client-side validation
+        if (!validateFormClient(form)) return;
+        const fd = new FormData(form);
+        try {
+            await apiFetch('/users', { method: 'POST', body: fd });
+            hideModal('create');
+            toast('success', 'Created');
+            announce('Record created successfully');
+            document.dispatchEvent(new Event('crud:refresh'));
+        } catch (err) {
+            if (err.type === 'validation') { showFormErrors(form, err.payload.errors); return; }
+            console.error(err); toast('error', 'Failed to create');
+        }
+    }
+
+    // submit edit
+    async function submitEdit() {
+        const form = qs('#form-edit');
+        clearFormErrors(form);
+        if (!validateFormClient(form)) return;
+        const id = form.elements['id'].value;
+        const fd = new FormData(form);
+        try {
+            await apiFetch(`/users/${id}`, { method: 'POST', body: fd });
+            hideModal('edit');
+            toast('success', 'Updated');
+            announce('Record updated successfully');
+            document.dispatchEvent(new Event('crud:refresh'));
+        } catch (err) {
+            if (err.type === 'validation') { showFormErrors(form, err.payload.errors); return; }
+            console.error(err); toast('error', 'Failed to update');
+        }
+    }
+
+    // submit trash
+    async function submitTrash() {
+        const modal = qs('#modal-trash-confirm');
+        const ids = JSON.parse(modal.dataset.ids || '[]');
+        try {
+            await apiFetch('/users', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) });
+            hideModal('trash-confirm');
+            toast('success', 'Trashed');
+            announce('Selected records moved to trash');
+            state.selected.clear();
+            document.dispatchEvent(new Event('crud:refresh'));
+        } catch (err) { console.error(err); toast('error', 'Failed to trash'); }
+    }
+
+    // Client-side validation: firstname/lastname letters only
+    const NAME_REGEX = /^[A-Za-z]+$/;
+    function validateFieldClient(input) {
+        const name = input.name;
+        const val = input.value.trim();
+        if ((name === 'firstname' || name === 'lastname')) {
+            if (!val) return { ok: false, message: 'This field is required' };
+            if (!NAME_REGEX.test(val)) return { ok: false, message: 'Only letters are allowed' };
+        }
+        return { ok: true };
+    }
+
+    function validateFormClient(form) {
+        let ok = true;
+        qsa('[data-validate]', form).forEach(inp => {
+            const res = validateFieldClient(inp);
+            const errP = qs(`[data-error-for="${inp.name}"]`, form);
+            if (!res.ok) {
+                ok = false;
+                if (errP) { errP.textContent = res.message; errP.classList.remove('hidden'); }
+                inp.classList.add('input-error-animate');
+            } else {
+                if (errP) { errP.textContent = ''; errP.classList.add('hidden'); }
+                inp.classList.remove('input-error-animate');
+            }
+        });
+        return ok;
+    }
+
+    // attach blur listeners for client validation
+    function attachValidation() {
+        qsa('[data-validate]').forEach(inp => {
+            inp.addEventListener('blur', () => {
+                const res = validateFieldClient(inp);
+                const errP = qs(`[data-error-for="${inp.name}"]`, inp.closest('form'));
+                if (!res.ok) { if (errP) { errP.textContent = res.message; errP.classList.remove('hidden'); } inp.classList.add('input-error-animate'); }
+                else { if (errP) { errP.textContent = ''; errP.classList.add('hidden'); } inp.classList.remove('input-error-animate'); }
+            });
+        });
+    }
+
+    function clearFormErrors(form) {
+        qsa('.form-error', form).forEach(p => { p.textContent = ''; p.classList.add('hidden'); });
+        qsa('[data-validate]', form).forEach(i => i.classList.remove('input-error-animate'));
+    }
+
+    function showFormErrors(form, errors) {
+        for (const field in errors) {
+            const p = qs(`[data-error-for="${field}"]`, form);
+            if (p) { p.textContent = errors[field].join(' '); p.classList.remove('hidden'); }
+            const inp = qs(`[name="${field}"]`, form);
+            if (inp) { inp.classList.add('input-error-animate'); }
+        }
+    }
+
+    // setup event listeners on page
+    function init() {
+        // perpage dropdown
+        const perToggle = qs('[data-perpage-toggle]');
+        const perDropdown = qs('[data-perpage-dropdown]');
+        if (perToggle && perDropdown) {
+            perToggle.addEventListener('click', () => perDropdown.classList.toggle('hidden'));
+            // mark active item based on state
+            qsa('.perpage-item').forEach(it => {
+                if (Number(it.dataset.perpage) === state.perPage) it.classList.add('active'); else it.classList.remove('active');
+            });
+
+            qsa('.perpage-item').forEach(li => {
+                li.addEventListener('click', () => {
+                    // update active classes
+                    qsa('.perpage-item').forEach(i => i.classList.remove('active'));
+                    li.classList.add('active');
+                    state.perPage = Number(li.dataset.perpage);
+                    qs('#perpage-label').textContent = `${state.perPage} Records`;
+                    perDropdown.classList.add('hidden');
+                    state.page = 1;
+                    load();
+                });
+            });
+        }
+
+        // search
+        const searchInput = qs('[data-search-input]');
+        const searchBtn = qs('[data-search-btn]');
+        if (searchBtn && searchInput) {
+            searchBtn.addEventListener('click', () => { state.search = searchInput.value.trim(); state.page = 1; load(); });
+            searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { state.search = searchInput.value.trim(); state.page = 1; load(); } });
+        }
+
+        // gear
+        const gearToggle = qs('[data-gear-toggle]');
+        const gearDropdown = qs('[data-gear-dropdown]');
+        if (gearToggle && gearDropdown) {
+            gearToggle.addEventListener('click', () => gearDropdown.classList.toggle('hidden'));
+            qsa('[data-action]').forEach(btn => btn.addEventListener('click', (e) => { handleGear(btn.dataset.action); gearDropdown.classList.add('hidden'); }));
+        }
+
+        // select all
+        const selectAll = qs('[data-select-all]');
+        if (selectAll) selectAll.addEventListener('change', () => {
+            const checks = qsa('#crud-table-body [data-row-check]');
+            checks.forEach(cb => { cb.checked = selectAll.checked; const id = Number(cb.dataset.id); if (selectAll.checked) state.selected.add(id); else state.selected.delete(id); });
+        });
+
+        // listen for modal events to refresh table after create/edit/trash
+        document.addEventListener('crud:refresh', load);
+
+        // Modal open/close wiring
+        document.addEventListener('crud:open-create', () => showModal('create'));
+        document.addEventListener('crud:open-view', (e) => showModal('view', e.detail));
+        document.addEventListener('crud:open-edit', (e) => showModal('edit', e.detail));
+        document.addEventListener('crud:open-trash', (e) => showModal('trash', e.detail));
+
+        qsa('[data-modal-close]').forEach(btn => btn.addEventListener('click', (ev) => {
+            const name = btn.dataset.modalClose;
+            hideModal(name);
+        }));
+
+        // create form submit
+        const createSave = qs('#create-save');
+        if (createSave) createSave.addEventListener('click', submitCreate);
+
+        // edit form submit
+        const editSave = qs('#edit-save');
+        if (editSave) editSave.addEventListener('click', submitEdit);
+
+        // trash confirm
+        const trashBtn = qs('#trash-confirm-btn');
+        if (trashBtn) trashBtn.addEventListener('click', submitTrash);
+
+        // image preview bindings
+        const createImage = qs('#create-image');
+        if (createImage) createImage.addEventListener('change', (e) => showImagePreview(e.target, '#create-image-preview'));
+        const editImage = qs('#edit-image');
+        if (editImage) editImage.addEventListener('change', (e) => showImagePreview(e.target, '#edit-image-preview'));
+
+        // modal close buttons data-modal-close attribute handling
+        qsa('[data-modal-close]').forEach(btn => btn.addEventListener('click', (ev) => {
+            const name = btn.dataset.modalClose || btn.getAttribute('data-modal-close');
+            if (name) hideModal(name);
+        }));
+
+        // when clicking inline view close buttons or similar, handled by modal listeners
+
+        // accessibility: focus trap & ESC for modals
+        setupModalAccessibility();
+
+        attachValidation();
+
+        load();
+    }
+
+    // Modal accessibility helpers
+    function setupModalAccessibility() {
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // close any open modal
+                qsa('[id^="modal-"]').forEach(m => { if (!m.classList.contains('hidden')) m.classList.add('hidden'); });
+            }
+        });
+
+        // backdrop click closes modal
+        qsa('[data-modal-backdrop]').forEach(back => {
+            back.addEventListener('click', (e) => {
+                if (e.target === back) {
+                    const name = back.dataset.modal;
+                    hideModal(name);
+                }
+            });
+        });
+
+        // Simple focus trap when modal opens
+        document.addEventListener('crud:open-create', () => trapFocus('modal-create'));
+        document.addEventListener('crud:open-edit', () => trapFocus('modal-edit'));
+        document.addEventListener('crud:open-view', () => trapFocus('modal-view'));
+        document.addEventListener('crud:open-trash', () => trapFocus('modal-trash-confirm'));
+    }
+
+    function trapFocus(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        const focusable = modal.querySelectorAll('a[href], button, textarea, input, select');
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        first.focus();
+        function handleTab(e) {
+            if (e.key !== 'Tab') return;
+            if (e.shiftKey) {
+                if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+            } else {
+                if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+            }
+        }
+        modal.addEventListener('keydown', handleTab);
+        // remove listener when modal hides
+        const observer = new MutationObserver(() => { if (modal.classList.contains('hidden')) { modal.removeEventListener('keydown', handleTab); observer.disconnect(); } });
+        observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    // Show image preview for file input
+    function showImagePreview(input, selector) {
+        const preview = qs(selector);
+        if (!preview) return;
+        const file = input.files && input.files[0];
+        if (!file) { preview.innerHTML = ''; preview.setAttribute('aria-hidden','true'); return; }
+        const url = URL.createObjectURL(file);
+        preview.innerHTML = `<img src="${url}" alt="Image preview">`;
+        preview.setAttribute('aria-hidden','false');
+    }
+
+    return { init, toast };
+})();
+
+document.addEventListener('DOMContentLoaded', () => Crud.init());
+
+// expose toast globally for modals
+window.crudToast = Crud.toast;

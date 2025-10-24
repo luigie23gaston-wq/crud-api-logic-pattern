@@ -1,0 +1,420 @@
+/* public/css/crud.css - Tailwind/Preline-like tweaks for the CRUD table */
+
+/* Use the same gradient background as the login page. This keeps the project free of the Tailwind CDN
+    while maintaining the same visual look. */
+body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(90deg, #34d399 0%, #7c3aed 100%); }
+
+/* Control sizing variables to keep header and inputs aligned */
+:root {
+    --control-h: 44px; /* height for inputs and icon buttons */
+    --control-h-mobile: 40px;
+    --card-head-vertical-padding: 18px; /* matches .crud-head-wrap padding */
+}
+
+/* Floating card */
+.crud-container { background: #fff; border-radius: 10px; padding: 0; box-shadow: 0 8px 26px rgba(9,30,66,0.08); overflow: hidden; }
+
+/* Page header spacing to match card header vertical alignment */
+.page-header { padding-top: calc(var(--card-head-vertical-padding) + 6px); padding-bottom: calc(var(--card-head-vertical-padding) + 6px); display:flex; align-items:center; min-height:80px; margin-top: 20px; margin-left:85.3%; }
+
+/* Specific viewport tuning for alignment */
+@media (min-width: 1200px) and (max-width: 1500px) {
+    /* around 1405x821 */
+    .page-header { margin-top: 32px; }
+}
+@media (min-width: 1600px) {
+    /* around 1980x1080 */
+    .page-header { margin-top: 48px;   }
+}
+
+/* If the page has a different top spacing on very small screens, reduce the header offset */
+@media (max-width: 640px) {
+    .page-header { margin-top: 12px; margin-left:63%; }
+}
+
+/* Header area */
+.crud-head-wrap { background: #f8fbff; padding: 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; position: relative; }
+.crud-head-left { display:flex; align-items:center; gap:12px; }
+
+/* Top page header (above the card) */
+.header-inner { display:flex; align-items:center; justify-content:space-between; gap:12px; height:var(--control-h); }
+.header-welcome { font-size: 14px; font-weight: 600; }
+.header-right .logout-btn { padding: 8px 12px; height:var(--control-h); display:inline-flex; align-items:center; justify-content:center; border-radius:8px; }
+
+@media (max-width: 768px) {
+    .header-inner { height:var(--control-h-mobile); }
+    .header-welcome { font-size: 13px; }
+    .header-right .logout-btn { height:var(--control-h-mobile); padding: 6px 10px; }
+}
+
+/* compact header variant removes extra top/bottom padding from .page-header */
+.page-header--compact { padding-top: 8px; padding-bottom: 8px; }
+.page-header--compact .header-inner { height: 44px; }
+.page-header--compact .header-right .logout-btn { height: 44px; padding: 8px 12px; }
+.per-page-pill { display:inline-flex; align-items:center; gap:10px; background:#ffffff; color:#7ca6c9; padding:6px 12px; border-radius:9999px; border:1px solid rgba(11,105,183,0.08); box-shadow: 0 1px 0 rgba(11,105,183,0.03); }
+.per-page-pill .pill-icon { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9999px; background:#ced8e0; color:#fff; }
+
+.search-box { display:flex; align-items:center; gap:8px; }
+.search-input { padding:10px 16px; border-radius:9999px; border:1px solid #e6edf3; width:320px; background:#fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); box-sizing: border-box; height: var(--control-h); }
+.search-btn { background:#0b69b7; color:#fff; padding:10px 12px; border-radius:9999px; border:none; display:inline-flex; align-items:center; justify-content:center; width:var(--control-h); height:var(--control-h); box-shadow: 0 3px 8px rgba(11,105,183,0.12); }
+
+.gear-btn { background:#0b69b7; color:#fff; width:var(--control-h); height:var(--control-h); border-radius:8px; display:inline-flex; align-items:center; justify-content:center; border: none; box-shadow: 0 3px 8px rgba(11,105,183,0.12); }
+.gear-dropdown { min-width: 200px; }
+
+/* Gear dropdown styles */
+.gear-dropdown { position: absolute; right: 0; margin-top: 10px; background: #fff; border-radius: 8px; box-shadow: 0 12px 30px rgba(2,6,23,0.12); padding: 8px; z-index: 500; min-width: 200px; }
+.gear-dropdown-inner { display:flex; flex-direction:column; gap:6px; }
+.gear-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:8px; background:transparent; border:0; text-align:left; color:#1f2937; font-weight:600; cursor:pointer; }
+.gear-item:hover, .gear-item:focus { background:#f1f5f9; outline:none; }
+.gear-item-icon { width:18px; text-align:center; }
+
+/* per-page dropdown (HS-style) */
+.hs-dropdown { position: relative; display: inline-block; }
+.hs-dropdown-menu { position: absolute; left: 0; top: 100%; background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08); min-width: 12rem; padding: 0.25rem; margin-top: 0.5rem; z-index: 50; }
+.perpage-dropdown ul { margin: 0; padding: 0; list-style: none; }
+.perpage-item { display: block; padding: 0.5rem 0.75rem; cursor: pointer; border-radius: 0.5rem; color: #374151; font-size: 0.875rem; font-weight: 600; }
+.perpage-item:hover, .perpage-item:focus { background: #f3f4f6; outline: none; }
+.perpage-item.active { background: #0b69b7; color: #fff; }
+
+.per-page-pill { display: inline-flex; align-items: center; gap: .5rem; padding: .5rem .75rem; border-radius: .5rem; border: 1px solid #e5e7eb; background: #fff; color: #0b69b7; font-weight: 600; }
+.per-page-pill .pill-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: .375rem; background: #eef2f6; color: #0b69b7; }
+
+/* Utility: small horizontal nudge to align perpage with checkbox column */
+
+/* Absolute positioning for perpage so it lines up with the table's first column (checkbox) */
+.perpage-absolute { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); }
+
+/* Responsive left offsets tuned for centered card layout */
+@media (min-width: 768px) {
+    .perpage-absolute { left: 20px; }
+}
+@media (min-width: 1024px) {
+    .perpage-absolute { left: 24px; }
+}
+@media (min-width: 1400px) {
+    .perpage-absolute { left: 28px; }
+}
+@media (min-width: 1900px) {
+    .perpage-absolute { left: 36px; }
+}
+
+
+/* Table area */
+.crud-inner { padding: 16px 20px; background: #fff; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+thead th { font-weight: 700; color: #9aa3b2; text-transform: uppercase; font-size: 12px; letter-spacing: 0.14em; background: transparent; padding: 20px 16px; text-align: left; }
+tbody td { padding: 20px 16px; vertical-align: middle; font-size: 14px; color: #2d3748; }
+tbody tr { border-bottom: 1px solid #eef2f7; }
+tbody tr:hover { background: #fbfdff; }
+
+/* Checkboxes */
+input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
+
+/* Action buttons */
+.action-set { display:flex; align-items:center; }
+.crud-btn-icon { width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; color:#fff; margin-right:8px; border:none; cursor:pointer; box-shadow: 0 4px 14px rgba(2,6,23,0.06); background: transparent; }
+.crud-btn i, .crud-btn svg { font-size: 16px; line-height: 1; }
+.crud-btn-icon i { font-size: 16px; line-height: 1; }
+
+/* Normalize search and gear icon buttons to match action icon sizes */
+[data-search-btn], [data-gear-toggle] { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:8px; background: transparent; border: 0; cursor: pointer; }
+[data-search-btn] i, [data-search-btn] svg, [data-gear-toggle] i, [data-gear-toggle] svg { font-size: 16px; line-height: 1; }
+
+/* Make them visually consistent with .crud-btn-icon */
+[data-search-btn].crud-btn-icon, [data-gear-toggle].crud-btn-icon { width:44px; height:44px; }
+.crud-btn-icon.btn-view { background: #06b6d4; }
+.crud-btn-icon.btn-edit { background: #2563eb; }
+.crud-btn-icon.btn-trash { background: #fb7185; }
+
+/* Pagination */
+/* Pagination layout: nudge info slightly right and controls slightly left to prevent overflow */
+#crud-pagination { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+#crud-pagination button { padding: 6px 8px; border-radius: 9999px; border: 0; background: transparent; color: #374151; cursor: pointer; font-weight: 600; font-size: 13px; }
+#crud-pagination button.active-page { background: #2563eb; color: white; box-shadow: 0 6px 20px rgba(37,99,235,0.22); width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; }
+#crud-pagination .page-number { min-width: 32px; height: 32px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; }
+#crud-pagination-info { color:#374151; font-size:13px; font-weight:600; padding-left:12px; }
+
+/* Slight padding to keep the right-side pagination controls from touching the container edge */
+.crud-footer-left { padding-right: 12px; }
+.crud-footer-right { padding-left: 12px; }
+
+/* Archive pagination uses same visual sizing as main pagination */
+#archive-pagination { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+#archive-pagination button { padding: 6px 8px; border-radius: 9999px; border: 0; background: transparent; color: #374151; cursor: pointer; font-weight: 600; font-size: 13px; }
+#archive-pagination button.active-page { background: #2563eb; color: white; width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; box-shadow: 0 6px 20px rgba(37,99,235,0.22); }
+#archive-pagination-info { color:#374151; font-size:13px; font-weight:600; padding-left:12px; }
+
+/* Footer layout utilities for pagination alignment */
+.crud-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.crud-footer-left { flex: 1 1 auto; }
+.crud-footer-right { flex: 0 0 auto; }
+
+@media (max-width: 640px) {
+    .crud-footer { flex-direction: column; align-items:stretch; gap:8px; }
+    .crud-footer-right { display:flex; justify-content:flex-end; }
+}
+
+/* Toasts: container in the far top-right of the page */
+.crud-toast-container {
+    position: fixed;
+    top: 12px;
+    right: 12px; /* far right */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 99999;
+    pointer-events: none; /* allow clicks to pass through except on the toast itself */
+    align-items: flex-end; /* right-align stacked toasts */
+}
+.crud-toast {
+    padding: 12px 18px;
+    border-radius: 8px;
+    color: white;
+    transform: translateY(-8px);
+    opacity: 0;
+    transition: transform 180ms ease, opacity 180ms ease;
+    pointer-events: auto;
+    box-shadow: 0 8px 24px rgba(2,6,23,0.12);
+    max-width: 360px;
+    word-break: break-word;
+}
+.crud-toast.show { transform: translateY(0); opacity: 1; }
+.crud-toast-success { background: #16a34a; font-size: larger;font-weight: bold;}
+.crud-toast-error { background: #dc2626; font-size: larger;font-weight: bold;}
+.crud-toast-warning { background: #f59e0b; font-size: larger;font-weight: bold;} 
+
+/* Forms & validation */
+@keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }
+.input-error-animate { animation: shake 0.6s; border-color: #ef4444 !important; }
+.form-error { color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; }
+
+/* Reusable input style matching the provided markup */
+.crud-input { padding: 0.625rem 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; background: #fff; color: #111827; width: 100%; font-size: 0.9375rem; }
+.crud-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); border-color: #3b82f6; }
+.crud-input[disabled] { opacity: 0.5; pointer-events: none; }
+
+/* Buttons: base and variants matching provided example */
+.crud-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1rem; border-radius: .5rem; font-weight: 600; font-size: .875rem; border: 1px solid transparent; cursor: pointer; }
+.crud-btn:disabled { opacity: .5; pointer-events: none; }
+.crud-btn-primary { background: #2563eb; color: #fff; border-color: transparent; }
+.crud-btn-primary:hover { background: #1e40af; }
+.crud-btn-primary:focus { outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.16); }
+.logout-btn { background: #0b69b7; color: #fff; }
+.logout-btn i { color: #fff; }
+.logout-btn { display:inline-flex; align-items:center; justify-content:center; }
+.crud-btn-ghost { background: transparent; color: #111827; border-color: green; }
+.crud-btn-icon { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: .5rem; }
+.crud-btn-danger { background: #dc2626; color: #fff; }
+.crud-btn:active { transform: translateY(1px); }
+
+/* Modal basics */
+.crud-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index: 9998; }
+.crud-modal { background: white; border-radius: 8px; width: 720px; max-width: 96%; padding: 0; display: flex; flex-direction: column; max-height: 86vh; overflow: hidden; }
+/* Larger modal variant used for archive/trashed records where more space is helpful */
+.crud-modal-large {
+    width: 1100px;
+    max-width: 98%;
+    max-height: 92vh;
+}
+
+/* make sure larger modal adapts on smaller viewports */
+@media (max-width: 1200px) {
+    .crud-modal-large { width: 90%; }
+}
+.crud-modal-header { display:flex; align-items:center; justify-content:space-between; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; flex: 0 0 auto; }
+.crud-modal-body { padding: 16px; overflow-y: auto; flex: 1 1 auto; }
+.crud-modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; display:flex; justify-content:flex-end; gap:8px; flex: 0 0 auto; }
+.crud-modal-header.bg-blue { background: linear-gradient(180deg,#0b69b7,#095a9a); color:white; }
+
+/* Loading overlay inside modals */
+.modal-loading { display:flex; align-items:center; gap:12px; justify-content:center; padding:18px 12px; border-radius:8px; background: rgba(255,255,255,0.9); margin-bottom: 12px; }
+.modal-loading .modal-spinner { width:20px; height:20px; border-radius:50%; border:3px solid rgba(59,130,246,0.2); border-top-color: rgba(59,130,246,0.9); animation: spin 800ms linear infinite; }
+.modal-loading-text { color:#374151; font-weight:600; }
+@keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+
+/* Modal close (X) button styled like primary with rotate animation */
+.modal-close { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:8px; background:#c6cad4; color:#131212; border:0; cursor:pointer; box-shadow: 0 4px 10px rgba(37,99,235,0.12); transition: background .12s ease, transform .18s ease; }
+.modal-close:focus { outline: 3px solid rgba(37,99,235,0.18); outline-offset: 2px; }
+.modal-close i, .modal-close svg { display:inline-block; transition: transform .32s cubic-bezier(.2,.9,.2,1); transform-origin: 50% 50%; font-size: 30px; }
+.modal-close:hover i, .modal-close:hover svg { transform: rotate(90deg); }
+.modal-close:active i, .modal-close:active svg { transform: rotate(180deg); transition-duration: .14s; }
+.modal-close.ghost { background: transparent; color: #374151; border: 1px solid rgba(55,65,81,0.08); box-shadow: none; }
+.modal-close.ghost:hover { background: rgba(55,65,81,0.04); }
+
+/* Image thumbs */
+.img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
+
+/* Confirm logout message style */
+.confirm-logout { color: #dc2626; font-weight: 700; }
+
+/* Strong overrides for the login modal to avoid layout conflicts (fixes modal appearing off to the side)
+   These use ID selectors and !important to ensure they win against page-specific CSS or transforms. */
+#auth-modal-backdrop.crud-modal-backdrop {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0,0,0,0.45) !important;
+    z-index: 100000 !important;
+    /* default to hidden unless explicitly shown via removal of .hidden */
+    display: none !important;
+}
+
+/* Only show backdrop (display:flex) when it does NOT have the hidden class */
+#auth-modal-backdrop.crud-modal-backdrop:not(.hidden) {
+    display: flex !important;
+}
+#auth-modal.crud-modal, #auth-modal {
+    position: relative !important;
+    width: min(720px, 96%) !important;
+    margin: 0 auto !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+}
+
+/* Make the close button inside the auth-modal ghost-style so the icon contrasts */
+#auth-modal .modal-close { background: transparent !important; color: #374151 !important; box-shadow: none !important; }
+#auth-modal .modal-close i, #auth-modal .modal-close svg { color: inherit !important; }
+
+/* Login/auth modal error text */
+.auth-error { color: #dc2626; font-weight: 700; }
+
+/* Success message for auth modal */
+.auth-success { color: #16a34a; font-weight: 700; }
+
+/* Modal image constraints for large images inside modal body */
+.crud-modal-body img { max-width: 100%; height: auto; display:block; margin: 0 auto; }
+.crud-modal-body .preview-image { max-height: 60vh; width: auto; object-fit: contain; }
+
+/* Zoom-in animation for image modal */
+@keyframes modalZoomIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+
+/* apply when the modal-image is visible */
+#modal-image:not(.hidden) .crud-modal {
+    animation: modalZoomIn 240ms cubic-bezier(.2,.9,.2,1) both;
+}
+
+/* View modal image larger and clickable */
+.view-modal-image { max-width: 320px; max-height: 48vh; width: auto; height: auto; display: block; margin-top: 12px; cursor: pointer; border-radius: 6px; }
+
+/* Utilities */
+.hidden { display: none; }
+.sr-only { position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); white-space:nowrap; }
+
+@media (max-width: 768px) {
+    /* public/css/crud.css - Consolidated styles for the CRUD table UI */
+
+    body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: #f3f6f9; }
+
+    /* Floating card */
+    .crud-container { background: #fff; border-radius: 10px; padding: 0; box-shadow: 0 8px 26px rgba(9,30,66,0.08); overflow: hidden; }
+
+    /* Header area */
+    .crud-head-wrap { background: #f8fbff; padding: 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .crud-head-left { display:flex; align-items:center; gap:12px; position:relative; }
+    .per-page-pill { display:inline-flex; align-items:center; gap:10px; background:#ffffff; color:#0b69b7; padding:6px 12px; border-radius:9999px; border:1px solid rgba(11,105,183,0.08); box-shadow: 0 1px 0 rgba(11,105,183,0.03); }
+    .per-page-pill .pill-icon { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9999px; background:#0b69b7; color:#fff; }
+
+    .perpage-dropdown { position:absolute; top:58px; left:0; z-index:400; list-style:none; padding:8px; background:#fff; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.08); min-width:160px; }
+    .perpage-dropdown li { padding:8px 12px; cursor:pointer; color:#23303b; font-weight:600; }
+    .perpage-dropdown li:hover { background:#f1f5f9; }
+
+    .search-box { display:flex; align-items:center; gap:8px; }
+    .search-input { padding:10px 16px; border-radius:9999px; border:1px solid #e6edf3; width:320px; background:#fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
+    .search-btn { background:#0b69b7; color:#fff; padding:10px 12px; border-radius:9999px; border:none; display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; box-shadow: 0 3px 8px rgba(11,105,183,0.12); }
+
+    .gear-btn { background:#0b69b7; color:#fff; width:44px; height:44px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; border: none; box-shadow: 0 3px 8px rgba(11,105,183,0.12); }
+
+    /* Gear dropdown styles */
+    .gear-dropdown { position: absolute; right: 0; margin-top: 10px; background: #fff; border-radius: 8px; box-shadow: 0 12px 30px rgba(2,6,23,0.12); padding: 8px; z-index: 500; min-width: 200px; }
+    .gear-dropdown-inner { display:flex; flex-direction:column; gap:6px; }
+    .gear-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:8px; background:transparent; border:0; text-align:left; color:#1f2937; font-weight:600; cursor:pointer; }
+    .gear-item:hover, .gear-item:focus { background:#f1f5f9; outline:none; }
+    .gear-item-icon { width:18px; text-align:center; }
+
+    /* Table area */
+    .crud-inner { padding: 16px 20px; background: #fff; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    thead th { font-weight: 700; color: #9aa3b2; text-transform: uppercase; font-size: 12px; letter-spacing: 0.14em; background: transparent; padding: 20px 16px; text-align: left; }
+    tbody td { padding: 20px 16px; vertical-align: middle; font-size: 14px; color: #2d3748; }
+    tbody tr { border-bottom: 1px solid #eef2f7; }
+    tbody tr:hover { background: #fbfdff; }
+
+    /* Checkboxes */
+    input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
+
+    /* Action buttons */
+    .action-set { display:flex; align-items:center; }
+    .action-btn { width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; color:#fff; margin-right:8px; border:none; cursor:pointer; box-shadow: 0 4px 14px rgba(2,6,23,0.06); }
+    .action-btn.view { background:#06b6d4; }
+    .action-btn.edit { background:#2563eb; }
+    .action-btn.trash { background:#fb7185; }
+    .action-btn i { font-size: 14px; }
+
+    /* Pagination */
+    #crud-pagination { display:flex; align-items:center; gap:8px; }
+    #crud-pagination button { padding: 8px 12px; border-radius: 9999px; border: 0; background: transparent; color: #374151; cursor: pointer; font-weight: 600; }
+    #crud-pagination button.active-page { background: #2563eb; color: white; box-shadow: 0 6px 20px rgba(37,99,235,0.22); width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; }
+    #crud-pagination .page-number { min-width: 36px; height: 36px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; }
+    #crud-pagination-info { color:#6b7280; font-size:13px; }
+
+    /* Toasts */
+    .crud-toast { position: fixed; left: 50%; top: 18%; transform: translateX(-50%) translateY(-10px); font-size:20px; padding: 12px 18px; border-radius: 8px; color: white; opacity: 0; pointer-events: none; transition: transform 180ms ease, opacity 180ms ease; z-index: 9999; }
+    .crud-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+    .crud-toast-success { background: #16a34a; }
+    .crud-toast-error { background: #dc2626; }
+    .crud-toast-warning { background: #f59e0b; }
+
+    /* Forms & validation */
+    @keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }
+    .input-error-animate { animation: shake 0.6s; border-color: #ef4444 !important; }
+    .form-error { color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; }
+
+    /* Modal basics */
+    .crud-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index: 9998; }
+    .crud-modal { background: white; border-radius: 8px; width: 720px; max-width: 96%; padding: 0; overflow: hidden; }
+    .crud-modal-header { display:flex; align-items:center; justify-content:space-between; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+    .crud-modal-body { padding: 16px; }
+    .crud-modal-footer { padding: 12px 16px; border-top: 1px solid #e5e7eb; display:flex; justify-content:flex-end; gap:8px; }
+    .crud-modal-header.bg-blue { background: linear-gradient(180deg,#0b69b7,#095a9a); color:white; }
+
+    /* Image thumbs */
+    .img-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
+
+    /* Utilities */
+    .hidden { display: none; }
+    .sr-only { position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); white-space:nowrap; }
+
+    @media (max-width: 768px) {
+        .search-input { width: 180px; }
+        thead th, tbody td { padding: 12px 10px; }
+    }
+
+/* Upload progress component styles */
+#upload-progress-component { max-width: 760px; margin: 12px auto; }
+.upload-file-card { background: #ffffff; border: 1px solid #e6edf3; padding: 12px; border-radius: 8px; box-shadow: 0 6px 18px rgba(2,6,23,0.04); }
+.upload-icon { width: 48px; height: 48px; border-radius: 8px; display:inline-flex; align-items:center; justify-content:center; }
+.upload-filename { margin: 0; }
+.upload-size { margin: 0; }
+.upload-cancel-btn { background: transparent; border: none; padding: 6px; border-radius: 8px; }
+.upload-status-icon svg { width: 16px; height: 16px; }
+.progress-bar-track { background: #f3f4f6; }
+.progress-bar-fill { transition: width 420ms cubic-bezier(.2,.9,.2,1); min-width: 24px; }
+
+/* End of file - ensure all blocks are closed */
+}
+
+/* Center the floating CRUD card instead of a percentage margin so it lines up with the header container */
+.floating-crud-card { margin: 8px auto 0 auto; }
+
+/* PDF export progress indicator */
+#pdf-export-progress { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 14px; border-radius: 8px; display:flex; align-items:center; gap:8px; z-index: 10000; box-shadow: 0 6px 20px rgba(2,6,23,0.2); }
+.pdf-spinner { width:18px; height:18px; border-radius:50%; border: 3px solid rgba(255,255,255,0.2); border-top-color: #fff; animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
