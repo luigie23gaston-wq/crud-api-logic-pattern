@@ -11,6 +11,10 @@
             </button>
         </div>
         <div class="crud-modal-body">
+            <div id="auth-modal-loading" class="modal-loading hidden" aria-hidden="true">
+                <div class="modal-spinner" aria-hidden="true"></div>
+                <h2 class="modal-loading-text">Loading…</h2>
+            </div>
             <h2 id="auth-modal-message" class="text-base">&nbsp;</h2>
             <h1 id="auth-modal-dots" class="text-base font-medium"></h1>
         </div>

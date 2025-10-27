@@ -189,7 +189,7 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
 .form-error { color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; }
 
 /* Reusable input style matching the provided markup */
-.crud-input { padding: 0.625rem 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; background: #fff; color: #111827; width: 100%; font-size: 0.9375rem; }
+.crud-input { padding: 0.625rem 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; background: #fff; color: #111827; width: 100%; font-size: 0.9375rem; margin: 1% 0; }
 .crud-input:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); border-color: #3b82f6; }
 .crud-input[disabled] { opacity: 0.5; pointer-events: none; }
 
@@ -227,9 +227,18 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
 .crud-modal-header.bg-blue { background: linear-gradient(180deg,#0b69b7,#095a9a); color:white; }
 
 /* Loading overlay inside modals */
-.modal-loading { display:flex; align-items:center; gap:12px; justify-content:center; padding:18px 12px; border-radius:8px; background: rgba(255,255,255,0.9); margin-bottom: 12px; }
-.modal-loading .modal-spinner { width:20px; height:20px; border-radius:50%; border:3px solid rgba(59,130,246,0.2); border-top-color: rgba(59,130,246,0.9); animation: spin 800ms linear infinite; }
-.modal-loading-text { color:#374151; font-weight:600; }
+.modal-loading { display:flex; align-items:center; gap:16px; justify-content:center; padding:22px 16px; border-radius:10px; background: rgba(255,255,255,0.95); margin-bottom: 12px; }
+
+/* Larger spinner used in view/edit/login success modals */
+.modal-loading .modal-spinner { width:48px; height:48px; border-radius:50%; border:5px solid rgba(59,130,246,0.18); border-top-color: rgba(59,130,246,0.95); animation: spin 700ms linear infinite; box-shadow: 0 2px 6px rgba(2,6,23,0.08); }
+.modal-loading-text { color:#111827; font-weight:700; font-size:1rem; }
+
+/* Make auth modal loading text larger and bolder to match spinner prominence */
+#auth-modal-loading .modal-loading-text {
+    font-size: 1.5rem; /* ~24px */
+    font-weight: 800;
+    line-height: 1;
+}
 @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
 
 /* Modal close (X) button styled like primary with rotate animation */
@@ -274,6 +283,19 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
     left: auto !important;
     top: auto !important;
     transform: none !important;
+}
+
+/* Reduce input width in create/edit modals to avoid horizontal scrolling. Keep full width on small screens. */
+#modal-create .crud-input,
+#modal-edit .crud-input {
+    width: 50% !important;
+    max-width: 50% !important;
+    box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+    #modal-create .crud-input,
+    #modal-edit .crud-input { width: 100% !important; max-width: 100% !important; }
 }
 
 /* Make the close button inside the auth-modal ghost-style so the icon contrasts */
@@ -392,10 +414,8 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
     .hidden { display: none; }
     .sr-only { position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); white-space:nowrap; }
 
-    @media (max-width: 768px) {
-        .search-input { width: 180px; }
-        thead th, tbody td { padding: 12px 10px; }
-    }
+    .search-input { width: 180px; }
+    thead th, tbody td { padding: 12px 10px; }
 
 /* Upload progress component styles */
 #upload-progress-component { max-width: 760px; margin: 12px auto; }
@@ -406,9 +426,83 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
 .upload-cancel-btn { background: transparent; border: none; padding: 6px; border-radius: 8px; }
 .upload-status-icon svg { width: 16px; height: 16px; }
 .progress-bar-track { background: #f3f4f6; }
-.progress-bar-fill { transition: width 420ms cubic-bezier(.2,.9,.2,1); min-width: 24px; }
+.progress-bar-fill { transition: width 300ms ease, background 300ms linear; min-width: 24px; }
 
-/* End of file - ensure all blocks are closed */
+/* Local create modal specific fill to allow color interpolation from red -> green */
+#create-upload-fill {
+    background: rgb(239,68,68); /* start red */
+    transition: width 300ms ease, background 300ms linear;
+    height: 100%;
+    display: block;
+    border-radius: 9999px; /* match rounded-full track */
+}
+
+/* Make the local create modal progress bar much thicker — match h2 (~1.5rem / 24px) for visibility */
+/* Thicker progress bar for modal create: 1.5rem for stronger visual weight */
+#modal-create #create-upload-local [role="progressbar"] {
+    height: 1.5rem; /* thicker */
+    background: #f3f4f6; /* ensure visible track */
+    border-radius: 9999px;
+    overflow: hidden;
+    border: 1px solid rgba(15,23,42,0.06);
+}
+#modal-create #create-upload-local #create-upload-fill,
+#modal-create #create-upload-local .progress-bar-fill {
+    height: 100%;
+    min-height: 1.5rem;
+    border-radius: 9999px;
+    display: block;
+}
+
+/* make the fill clearly visible and centered text if used
+     ensure the percent next to the bar aligns vertically */
+#modal-create #create-upload-local {
+    display: flex;
+    align-items: center;
+}
+#modal-create #create-upload-local .flex.items-center {
+    display: flex;
+    align-items: center;
+}
+#modal-create #create-upload-local #create-upload-fill {
+    transition: width 220ms linear, background-color 180ms linear;
+    box-shadow: inset 0 -2px 6px rgba(0,0,0,0.06);
+    display: flex; /* allow centered contents if any */
+    align-items: center;
+    justify-content: center;
+}
+#modal-create #create-upload-local #create-upload-percent {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 3rem;
+}
+
+/* On small screens keep it thinner to avoid layout issues */
+@media (max-width: 640px) {
+    #modal-create #create-upload-local [role="progressbar"] { height: 0.75rem; }
+    #modal-create #create-upload-local #create-upload-fill { min-height: 0.75rem; }
+    #modal-create #create-upload-local { gap: 8px; }
+}
+
+/* End of section: upload/track styles */
+
+/* Ensure the progressbar track is positioned so the fill can be absolutely positioned inside it
+   this makes the fill reliably visible even when flex sizing behaves unexpectedly */
+#modal-create #create-upload-local [role="progressbar"] {
+    position: relative !important;
+    height: 1.5rem !important; /* enforce thicker bar even if tailwind classes are present */
+    overflow: hidden !important;
+}
+#modal-create #create-upload-local #create-upload-fill {
+    /* Use normal flow (relative) so the fill behaves like the password-strength bar
+       and grows naturally inside the flex track. Avoid absolute positioning which
+       can be clipped or put behind other stacking contexts. */
+    position: relative !important;
+    height: 100% !important;
+    z-index: auto !important;
+    display: block !important;
+    border-radius: 9999px !important;
 }
 
 /* Center the floating CRUD card instead of a percentage margin so it lines up with the header container */

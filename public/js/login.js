@@ -65,7 +65,22 @@ function openAuthModal(title, message, options = {}) {
   };
   const stopDots = () => { if (backdrop && backdrop._dotInterval) { clearInterval(backdrop._dotInterval); backdrop._dotInterval = null; } if (dots) dots.textContent = ''; };
 
+  const startSpinner = () => {
+    const loading = document.getElementById('auth-modal-loading');
+    if (!loading || !backdrop) return;
+    loading.classList.remove('hidden');
+    loading.setAttribute('aria-hidden', 'false');
+    backdrop._spinnerActive = true;
+  };
+
+  const stopSpinner = () => {
+    const loading = document.getElementById('auth-modal-loading');
+    if (loading) { loading.classList.add('hidden'); loading.setAttribute('aria-hidden', 'true'); }
+    if (backdrop) backdrop._spinnerActive = false;
+  };
+
   if (options.animateDots) startDots();
+  if (options.showSpinner) startSpinner();
 
   // wire close buttons (will be additional to global handlers but safe)
   const closeButtons = backdrop.querySelectorAll('[data-modal-close]');
@@ -245,7 +260,8 @@ window.authForm = function () {
         // Some servers return JSON { success: true } — treat that as success
         if (res.ok && (data.success === true)) {
           if (hasAuthModal) {
-            const ctrl = openAuthModal('Success', 'Login Success - Redirecting', { animateDots: true, type: 'success' });
+            // show spinner-style loading in auth modal for redirecting
+            const ctrl = openAuthModal('Success', 'Login Success - Redirecting', { showSpinner: true, type: 'success' });
             // redirect after short delay (allow dots to animate briefly)
             setTimeout(() => {
               if (ctrl && ctrl.stopDots) ctrl.stopDots();

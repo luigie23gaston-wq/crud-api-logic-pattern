@@ -39,9 +39,8 @@
   let currentXhr = null;
 
   function uploadFile(file, url, fieldName = 'file', extraFields = {}, onProgress) {
-    const el = findEl('#upload-progress-component');
-    if (!el) throw new Error('Upload component not found');
-
+    // It's OK if the global upload component isn't present (we still support local modal progress).
+    // showUploadComponent() and setProgress() are no-ops when the component is missing.
     showUploadComponent();
     setProgress(0);
 

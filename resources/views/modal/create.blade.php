@@ -22,9 +22,9 @@
                         <label class="block text-sm">Image (optional)</label>
                         <input id="create-image" name="image" type="file" class="crud-input" accept="image/*" />
                         <input type="hidden" name="image_path" id="create-image-path" />
-                        <div id="create-image-preview" class="img-preview" aria-hidden="true"></div>
                         <!-- Local upload progress (appears when user selects a file) -->
                         <div id="create-upload-local" class="hidden mt-2">
+                            <!-- Local progress debug label removed (now hidden) -->
                             <div class="flex items-center gap-x-3 whitespace-nowrap">
                                 <div class="flex w-full h-2 bg-gray-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                                     <div id="create-upload-fill" class="flex flex-col justify-center rounded-full overflow-hidden bg-teal-500 text-xs text-white text-center whitespace-nowrap" style="width: 0%"></div>
@@ -33,7 +33,10 @@
                                     <span id="create-upload-percent" class="text-sm text-gray-800">0%</span>
                                 </div>
                             </div>
+                            <!-- ARIA live region for screen readers to announce progress -->
+                            <div id="create-upload-status" class="sr-only" aria-live="polite" aria-atomic="true">Upload not started</div>
                         </div>
+                        <div id="create-image-preview" class="img-preview" aria-hidden="true"></div>
                     </div>
                 </form>
             </div>
