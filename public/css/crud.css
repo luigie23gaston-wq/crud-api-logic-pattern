@@ -512,3 +512,4 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
 #pdf-export-progress { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 14px; border-radius: 8px; display:flex; align-items:center; gap:8px; z-index: 10000; box-shadow: 0 6px 20px rgba(2,6,23,0.2); }
 .pdf-spinner { width:18px; height:18px; border-radius:50%; border: 3px solid rgba(255,255,255,0.2); border-top-color: #fff; animation: spin 900ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+}
