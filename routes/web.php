@@ -18,6 +18,7 @@ use App\Http\Controllers\UserAjaxController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\WeatherController;
 use App\Http\Controllers\Admin\WeatherHistoryController;
+use App\Http\Controllers\ChatController;
 
 // Public authentication routes (must remain public so middleware can redirect here)
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -73,8 +74,14 @@ Route::middleware('auth')->group(function () {
     });
 });
 
+
 // Friendly GET handler so navigating to this URL returns a helpful JSON message
 Route::get('/users/restore', function () {
     return response()->json(['message' => 'This endpoint accepts POST requests with { ids: [] } to restore soft-deleted records. Use POST /users/restore.'], 405);
 });
+
+// Global Chat Routes - Real Database Implementation
+Route::get('/chat/messages', [ChatController::class, 'index'])->name('chat.messages');
+Route::post('/chat/messages', [ChatController::class, 'store'])->name('chat.send');
 // (already declared inside auth group)
+

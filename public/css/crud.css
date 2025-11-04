@@ -1,5 +1,8 @@
 /* public/css/crud.css - Tailwind/Preline-like tweaks for the CRUD table */
 
+/* Alpine.js cloak - hide unprocessed templates */
+[x-cloak] { display: none !important; }
+
 /* Use the same gradient background as the login page. This keeps the project free of the Tailwind CDN
     while maintaining the same visual look. */
 body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(90deg, #34d399 0%, #7c3aed 100%); }
@@ -512,4 +515,625 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
 #pdf-export-progress { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 14px; border-radius: 8px; display:flex; align-items:center; gap:8px; z-index: 10000; box-shadow: 0 6px 20px rgba(2,6,23,0.2); }
 .pdf-spinner { width:18px; height:18px; border-radius:50%; border: 3px solid rgba(255,255,255,0.2); border-top-color: #fff; animation: spin 900ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========================================
+   GLOBAL CHAT MODAL STYLES
+   (Slack-style with purple-to-green gradient theme)
+   ======================================== */
+
+/* Global Chat Modal Content - Uses crud-modal structure */
+.modal-global-chat-content {
+    max-width: 800px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #7c3aed 0%, #34d399 100%);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 25px 80px rgba(124, 58, 237, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Modal Header */
+.modal-globalchat-header {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.modal-globalchat-header .modal-title {
+    font-size: 20px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #7c3aed, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.5px;
+}
+
+.modal-globalchat-header .modal-title i {
+    background: linear-gradient(135deg, #7c3aed, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Global Chat Close Button */
+.modal-globalchat-header .crud-modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(124, 58, 237, 0.08);
+    color: #7c3aed;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-globalchat-header .crud-modal-close:hover {
+    background: linear-gradient(135deg, #7c3aed, #34d399);
+    color: white;
+    transform: rotate(90deg) scale(1.1);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+/* Modal Body (Messages Container) */
+.modal-globalchat-body {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #f8f9fa;
+    padding: 0;
+    max-height: 550px;
+    display: flex;
+    flex-direction: column;
+}
+
+.globalchat-messages-container {
+    flex: 1;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    padding: 24px;
+    position: relative;
+    background: linear-gradient(180deg, #fafbfc 0%, #f3f4f6 100%);
+    min-height: 350px;
+    max-height: 450px;
+}
+
+/* Scrollbar Styling */
+.globalchat-messages-container::-webkit-scrollbar {
+    width: 10px;
+}
+
+.globalchat-messages-container::-webkit-scrollbar-track {
+    background: rgba(124, 58, 237, 0.08);
+    border-radius: 10px;
+    margin: 4px;
+}
+
+.globalchat-messages-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #7c3aed, #34d399);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.globalchat-messages-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #6d28d9, #10b981);
+    background-clip: padding-box;
+}
+
+/* Loading Indicators */
+.globalchat-loading,
+.globalchat-loading-older {
+    text-align: center;
+    padding: 20px;
+    color: #7c3aed;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.globalchat-loading i,
+.globalchat-loading-older i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.globalchat-no-more {
+    text-align: center;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(52, 211, 153, 0.05));
+    border-radius: 12px;
+    margin: 12px 0;
+    font-size: 13px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #10b981, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Messages List */
+.globalchat-messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 4px 0;
+}
+
+/* Individual Message */
+.globalchat-message {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    animation: messageSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    padding: 4px;
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Own Message Alignment */
+.globalchat-message-own {
+    flex-direction: row-reverse;
+}
+
+/* Message Avatar */
+.globalchat-message-avatar {
+    flex-shrink: 0;
+}
+
+.globalchat-avatar-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 800;
+    font-size: 17px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+    border: 3px solid white;
+    transition: all 0.3s ease;
+}
+
+.globalchat-avatar-circle:hover {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+}
+
+/* Message Content */
+.globalchat-message-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.globalchat-message-own .globalchat-message-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+/* Message Header (Username & Timestamp) */
+.globalchat-message-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 0 6px;
+}
+
+.globalchat-username {
+    font-weight: 800;
+    font-size: 15px;
+    background: linear-gradient(135deg, #7c3aed, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.3px;
+}
+
+.globalchat-timestamp {
+    font-size: 12px;
+    color: #9ca3af;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+/* Message Text Bubble - Slack-style */
+.globalchat-message-text {
+    background: #ffffff;
+    padding: 14px 18px;
+    border-radius: 20px 20px 20px 6px;
+    font-size: 15px;
+    color: #1f2937;
+    word-wrap: break-word;
+    max-width: 550px;
+    line-height: 1.6;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(124, 58, 237, 0.1);
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.globalchat-message-text:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1);
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+/* Own message bubble - Slack-style with gradient */
+.globalchat-message-own .globalchat-message-text {
+    background: linear-gradient(135deg, #7c3aed 0%, #34d399 100%);
+    color: white;
+    border-radius: 20px 20px 6px 20px;
+    border: none;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35), 0 2px 6px rgba(124, 58, 237, 0.2);
+    font-weight: 500;
+}
+
+.globalchat-message-own .globalchat-message-text:hover {
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.45), 0 4px 10px rgba(52, 211, 153, 0.3);
+    transform: translateY(-3px);
+}
+
+/* Message Attachments */
+.globalchat-attachments {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.globalchat-attachment-image {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.globalchat-attachment-image:hover {
+    transform: scale(1.05);
+}
+
+.globalchat-attachment-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #7c3aed;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.globalchat-attachment-file:hover {
+    background: #f9fafb;
+    border-color: #7c3aed;
+}
+
+/* Empty State */
+.globalchat-empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: #9ca3af;
+}
+
+.globalchat-empty i {
+    font-size: 64px;
+    margin-bottom: 20px;
+    display: block;
+    background: linear-gradient(135deg, #7c3aed, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    opacity: 0.6;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.globalchat-empty p {
+    font-size: 16px;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+/* Scroll to Bottom Button */
+.globalchat-scroll-bottom {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #34d399);
+    color: white;
+    border: 3px solid white;
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+}
+
+.globalchat-scroll-bottom:hover {
+    transform: scale(1.15);
+    box-shadow: 0 8px 28px rgba(124, 58, 237, 0.7), 0 4px 12px rgba(52, 211, 153, 0.4);
+}
+
+.globalchat-scroll-bottom:active {
+    transform: scale(0.95);
+}
+
+/* Modal Footer (Input Area) - Slack-style */
+.modal-globalchat-footer {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    padding: 20px 24px;
+    border-top: 1px solid rgba(124, 58, 237, 0.15);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Selected Files Preview */
+.globalchat-selected-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.globalchat-selected-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.globalchat-remove-file {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 4px;
+    transition: color 0.2s;
+}
+
+.globalchat-remove-file:hover {
+    color: #dc2626;
+}
+
+/* Input Form - Slack-style */
+.globalchat-input-form {
+    width: 100%;
+}
+
+.globalchat-input-group {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    background: white;
+    border: 2px solid rgba(124, 58, 237, 0.15);
+    border-radius: 16px;
+    padding: 8px 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.globalchat-input-group:focus-within {
+    border-color: #7c3aed;
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.15), 0 0 0 4px rgba(124, 58, 237, 0.08);
+    background: #fefefe;
+}
+
+/* File Upload Button - Slack-style */
+.globalchat-file-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(52, 211, 153, 0.1));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #7c3aed;
+    font-size: 18px;
+    border: 2px solid transparent;
+}
+
+.globalchat-file-btn:hover {
+    background: linear-gradient(135deg, #7c3aed, #34d399);
+    color: white;
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+/* Message Input - Slack-style */
+.globalchat-input {
+    flex: 1;
+    padding: 10px 4px;
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    resize: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    transition: all 0.2s;
+    max-height: 120px;
+    overflow-y: auto;
+    line-height: 1.5;
+    color: #1f2937;
+}
+
+.globalchat-input::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+.globalchat-input:focus {
+    outline: none;
+}
+
+.globalchat-input:disabled {
+    background: transparent;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Send Button - Slack-style with gradient */
+.globalchat-send-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #7c3aed 0%, #34d399 100%);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.globalchat-send-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #6d28d9 0%, #10b981 100%);
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.5), 0 2px 8px rgba(52, 211, 153, 0.3);
+}
+
+.globalchat-send-btn:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.globalchat-send-btn:disabled {
+    background: linear-gradient(135deg, #d1d5db, #e5e7eb);
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.5;
+}
+
+/* Typing Indicator */
+.globalchat-typing {
+    padding: 12px 20px;
+    font-size: 13px;
+    color: #7c3aed;
+    font-weight: 600;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.globalchat-typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.globalchat-typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: linear-gradient(135deg, #7c3aed, #34d399);
+    border-radius: 50%;
+    animation: typingDot 1.4s infinite;
+}
+
+.globalchat-typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.globalchat-typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingDot {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+    30% {
+        transform: translateY(-8px);
+        opacity: 1;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .modal-global-chat-content {
+        width: 95%;
+        max-width: 95%;
+        max-height: 90vh;
+        border-radius: 16px;
+    }
+
+    .globalchat-message-text {
+        max-width: 240px;
+        font-size: 14px;
+        padding: 12px 14px;
+    }
+
+    .globalchat-avatar-circle {
+        width: 38px;
+        height: 38px;
+        font-size: 15px;
+        border-radius: 10px;
+    }
+
+    .globalchat-messages-container {
+        padding: 16px;
+    }
+
+    .modal-globalchat-header {
+        padding: 16px 18px;
+    }
+
+    .modal-globalchat-footer {
+        padding: 16px 18px;
+    }
+
+    .globalchat-input-group {
+        padding: 6px 10px;
+    }
+}
 }

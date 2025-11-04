@@ -11,7 +11,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Project CSS -->
-    <link rel="stylesheet" href="{{ asset('css/crud.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/crud.css') }}?v={{ time() }}">
     <!-- (Tailwind removed — gradient provided by public/css/crud.css instead) -->
 </head>
 <body class="min-h-screen bg-gradient-to-r from-green-400 to-purple-500 p-4 font-sans">
@@ -88,6 +88,7 @@
                                     <button type="button" class="gear-item" data-action="export-pdf"><i class="fa fa-file-pdf gear-item-icon"></i> Export PDF</button>
                                     <button type="button" class="gear-item" data-action="export-pdf-selected"><i class="fa fa-file-pdf gear-item-icon"></i> Export Selected PDF</button>
                                     <button type="button" class="gear-item" data-action="uncheck"><i class="fa-solid fa-rectangle-xmark gear-item-icon"></i> Uncheck All</button>
+                                    <button type="button" class="gear-item" data-action="open-globalchat"><i class="fa-solid fa-comments gear-item-icon"></i> Global Chat</button>
                                     <a href="{{ route('weather.index') }}" class="gear-item"><i class="fa-solid fa-cloud-sun-rain gear-item-icon"></i> Weather</a>
                                 </div>
                             </div>
@@ -139,6 +140,7 @@
     @includeWhen(file_exists(resource_path('views/modal/archive-confirm.blade.php')), 'modal.archive-confirm')
     @includeWhen(file_exists(resource_path('views/modal/logout-confirm.blade.php')), 'modal.logout-confirm')
     @includeWhen(file_exists(resource_path('views/modal/image.blade.php')), 'modal.image')
+    @includeWhen(file_exists(resource_path('views/modal/gchat-simple.blade.php')), 'modal.gchat-simple')
 
     <!-- Upload progress component -->
     @includeWhen(file_exists(resource_path('views/components/upload-progress.blade.php')), 'components.upload-progress')
@@ -147,11 +149,18 @@
     <div id="crud-live-region" class="sr-only" aria-live="polite"></div>
 
     <!-- Scripts -->
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <!-- NO Alpine.js - using vanilla JavaScript only -->
     <!-- html2pdf: converts DOM to PDF (used for Export PDF action) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+    <!-- Global Chat: Simple vanilla JavaScript version -->
+    <script src="{{ asset('js/gchat-simple.js') }}"></script>
     <script src="{{ asset('js/crud.js') }}" defer></script>
     <script src="{{ asset('js/upload.js') }}" defer></script>
     <script src="{{ asset('js/logout.js') }}"></script>
+    
+    <!-- Set current user ID for global chat -->
+    <script>
+        window.currentUserId = {{ Auth::id() }};
+    </script>
 </body>
 </html>
