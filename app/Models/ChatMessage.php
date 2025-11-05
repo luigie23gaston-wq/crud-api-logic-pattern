@@ -27,4 +27,12 @@ class ChatMessage extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get all attachments for this message
+     */
+    public function attachments()
+    {
+        return $this->hasMany(ChatAttachment::class);
+    }
 }

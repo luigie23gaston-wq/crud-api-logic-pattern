@@ -38,7 +38,46 @@
             <!-- Footer (Input) -->
             <div class="crud-modal-footer modal-globalchat-footer">
                 <form id="gchat-form" class="globalchat-input-form">
-                    <div class="globalchat-input-group">
+                
+                    <!-- Attachment Preview Area (appears above input when files selected) -->
+                    <div id="gchat-preview-container" class="gchat-preview-container" style="display: none;">
+                        <div id="gchat-preview-items" class="gchat-preview-items">
+                            <!-- Preview thumbnails rendered by JavaScript -->
+                        </div>
+                    </div>
+                
+                    <div class="globalchat-input-group" style="position: relative;">
+                    
+                        <!-- Attachment Dropdown (appears ABOVE gear button) -->
+                        <div id="gchat-attachment-dropdown" class="gchat-attachment-dropdown" style="display: none;">
+                            <label class="gchat-attachment-option">
+                                <input type="file" 
+                                       id="gchat-image-input" 
+                                       accept="image/*" 
+                                       multiple
+                                       style="display: none;">
+                                <i class="fa fa-image"></i>
+                                <span>Image</span>
+                            </label>
+                            <label class="gchat-attachment-option">
+                                <input type="file" 
+                                       id="gchat-file-input" 
+                                       accept="*/*" 
+                                       multiple
+                                       style="display: none;">
+                                <i class="fa fa-file"></i>
+                                <span>File</span>
+                            </label>
+                        </div>
+                    
+                        <!-- Gear Button (Attachment Options) -->
+                        <button type="button" 
+                                id="gchat-attachment-btn" 
+                                class="globalchat-send-btn"
+                                aria-label="Attach file"
+                                style="margin-right: 8px;">
+                            <i class="fa fa-cog"></i>
+                        </button>
                     
                         <!-- Message Input -->
                         <textarea id="gchat-input"
@@ -59,3 +98,6 @@
         </div>
     </div>
 </div>
+
+{{-- Include Image Zoom Modal (displays on top of this modal) --}}
+@includeWhen(file_exists(resource_path('views/modal/gchat-image.blade.php')), 'modal.gchat-image')

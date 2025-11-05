@@ -153,10 +153,10 @@
     <!-- html2pdf: converts DOM to PDF (used for Export PDF action) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
     <!-- Global Chat: Simple vanilla JavaScript version -->
-    <script src="{{ asset('js/gchat-simple.js') }}"></script>
-    <script src="{{ asset('js/crud.js') }}" defer></script>
-    <script src="{{ asset('js/upload.js') }}" defer></script>
-    <script src="{{ asset('js/logout.js') }}"></script>
+    <script src="{{ asset('js/gchat-simple.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/crud.js') }}?v={{ time() }}" defer></script>
+    <script src="{{ asset('js/upload.js') }}?v={{ time() }}" defer></script>
+    <script src="{{ asset('js/logout.js') }}?v={{ time() }}"></script>
     
     <!-- Set current user ID for global chat -->
     <script>

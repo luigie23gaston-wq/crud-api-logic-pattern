@@ -217,16 +217,22 @@ const GlobalChat = {
     
     async sendMessage() {
         const text = this.messageInput.value.trim();
-        if (!text || this.state.sendingMessage) return;
+        const attachments = window.GchatAttachment ? window.GchatAttachment.getAttachments() : [];
+        
+        // Must have either text or attachments
+        if (!text && attachments.length === 0) return;
+        if (this.state.sendingMessage) return;
         
         this.state.sendingMessage = true;
         this.sendButton.disabled = true;
         
-        const formData = new FormData();
-        formData.append('message', text);
-        
         try {
-            const response = await fetch('/chat/messages', {
+            // Step 1: Create the message (text can be empty if only attachments)
+            const messageText = text || '📎'; // Use attachment emoji if no text
+            const formData = new FormData();
+            formData.append('message', messageText);
+            
+            const messageResponse = await fetch('/chat/messages', {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -236,17 +242,64 @@ const GlobalChat = {
                 body: formData
             });
             
-            if (!response.ok) {
+            if (!messageResponse.ok) {
                 throw new Error('Failed to send message');
             }
             
-            const data = await response.json();
-            this.state.messages.push(data.message);
-            this.state.lastMessageId = data.message.id;
+            const messageData = await messageResponse.json();
+            const newMessage = messageData.message;
+            
+            // Step 2: Upload attachments if any
+            if (attachments.length > 0) {
+                console.log('[gchat-simple] Uploading', attachments.length, 'attachments...');
+                
+                for (const attachment of attachments) {
+                    const uploadFormData = new FormData();
+                    uploadFormData.append('file', attachment.file);
+                    uploadFormData.append('type', attachment.type);
+                    uploadFormData.append('message_id', newMessage.id);
+                    
+                    console.log('[gchat-simple] Uploading attachment:', attachment.name, 'to message:', newMessage.id);
+                    
+                    const uploadResponse = await fetch('/chat/upload', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: uploadFormData
+                    });
+                    
+                    if (!uploadResponse.ok) {
+                        const errorText = await uploadResponse.text();
+                        console.error('[gchat-simple] Failed to upload attachment:', attachment.name, uploadResponse.status, errorText);
+                    } else {
+                        const result = await uploadResponse.json();
+                        console.log('[gchat-simple] Upload successful:', result);
+                    }
+                }
+                
+                // Clear attachments after successful upload
+                if (window.GchatAttachment) {
+                    window.GchatAttachment.clearAttachments();
+                }
+            }
+            
+            // Step 3: Update UI
+            this.state.messages.push(newMessage);
+            this.state.lastMessageId = newMessage.id;
             
             this.messageInput.value = '';
             this.renderMessages();
             this.scrollToBottom();
+            
+            // Reload messages after a short delay to get attachments
+            if (attachments.length > 0) {
+                setTimeout(() => {
+                    this.loadMessages();
+                }, 500);
+            }
             
         } catch (error) {
             console.error('[gchat-simple] Send error:', error);
@@ -267,6 +320,36 @@ const GlobalChat = {
             // Use formatted_time from backend (Philippine time) or fallback to formatTime
             const time = msg.formatted_time || this.formatTime(msg.created_at);
             
+            // Render attachments if present
+            let attachmentsHtml = '';
+            if (msg.attachments && msg.attachments.length > 0) {
+                console.log('[gchat-simple] Rendering attachments for message:', msg.id, msg.attachments);
+                attachmentsHtml = msg.attachments.map(att => {
+                    console.log('[gchat-simple] Attachment:', att);
+                    // Determine if image based on mime_type
+                    const isImage = att.mime_type && att.mime_type.startsWith('image/');
+                    const filename = att.original_name || 'file';
+                    
+                    if (isImage) {
+                        return `
+                            <div class="gchat-msg-image" data-image-url="${att.url}">
+                                <img src="${att.url}" alt="${this.escapeHtml(filename)}" />
+                            </div>
+                        `;
+                    } else {
+                        const fileIcon = this.getFileIcon(filename);
+                        return `
+                            <div class="gchat-msg-file" data-file-url="${att.url}" data-file-name="${this.escapeHtml(filename)}">
+                                <a href="${att.url}" download="${this.escapeHtml(filename)}" target="_blank">
+                                    <i class="fa ${fileIcon}"></i>
+                                    <span>${this.escapeHtml(filename)}</span>
+                                </a>
+                            </div>
+                        `;
+                    }
+                }).join('');
+            }
+            
             return `
                 <div class="globalchat-message ${isOwn ? 'globalchat-message-own' : ''}">
                     <div class="globalchat-message-avatar">
@@ -279,13 +362,155 @@ const GlobalChat = {
                             <span class="globalchat-username">${this.escapeHtml(username)}</span>
                             <span class="globalchat-timestamp">${time}</span>
                         </div>
-                        <div class="globalchat-message-text">${this.escapeHtml(msg.message)}</div>
+                        ${msg.message !== '📎' ? `<div class="globalchat-message-text">${this.escapeHtml(msg.message)}</div>` : ''}
+                        ${attachmentsHtml}
                     </div>
                 </div>
             `;
         }).join('');
         
-        if (html) { this.messagesContainer.innerHTML = `<div class="globalchat-messages-list">${html}</div>`; this.scrollToBottom(); } else { this.messagesContainer.innerHTML = '<div class="globalchat-empty"><i class="fa fa-comments-o"></i><p>No messages yet. Be the first to say hello!</p></div>'; }
+        if (html) {
+            this.messagesContainer.innerHTML = `<div class="globalchat-messages-list">${html}</div>`;
+            
+            // Attach click handlers for images
+            this.messagesContainer.querySelectorAll('.gchat-msg-image').forEach(el => {
+                el.addEventListener('click', () => {
+                    const imageUrl = el.dataset.imageUrl;
+                    this.openImageModal(imageUrl);
+                });
+            });
+            
+            // Attach click handlers for file downloads
+            this.messagesContainer.querySelectorAll('.gchat-msg-file').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const fileUrl = el.dataset.fileUrl;
+                    const fileName = el.dataset.fileName;
+                    
+                    if (fileUrl && fileName) {
+                        console.log('[gchat-simple] File download triggered:', fileName);
+                        
+                        // Add download animation
+                        el.classList.add('downloading');
+                        setTimeout(() => {
+                            el.classList.remove('downloading');
+                        }, 600);
+                        
+                        // Optional: Show download notification
+                        // if (window.crudToast) {
+                        //     window.crudToast('success', `Downloading ${fileName}...`);
+                        // }
+                        
+                        // The anchor tag will handle the download automatically
+                        // Optionally override with: this.downloadFile(fileUrl, fileName);
+                    }
+                });
+            });
+            
+            this.scrollToBottom();
+        } else {
+            this.messagesContainer.innerHTML = '<div class="globalchat-empty"><i class="fa fa-comments-o"></i><p>No messages yet. Be the first to say hello!</p></div>';
+        }
+    },
+    
+    openImageModal(imageUrl) {
+        const modal = document.getElementById('gchat-image-modal');
+        const img = document.getElementById('gchat-modal-image');
+        const spinner = modal?.querySelector('.gchat-image-spinner');
+        
+        if (!modal || !img) return;
+        
+        // Show modal and spinner
+        modal.style.display = 'block';
+        if (spinner) spinner.style.display = 'flex';
+        
+        // Reset zoom state
+        let currentZoom = 1;
+        const maxZoom = 3;
+        const minZoom = 0.5;
+        const zoomStep = 0.25;
+        
+        // Set image source and handle load
+        img.style.transform = `scale(${currentZoom})`;
+        img.style.opacity = '0';
+        
+        img.onload = () => {
+            if (spinner) spinner.style.display = 'none';
+            img.style.opacity = '1';
+        };
+        
+        img.onerror = () => {
+            if (spinner) spinner.style.display = 'none';
+            console.error('[gchat-simple] Failed to load image:', imageUrl);
+            // Optionally show error message
+        };
+        
+        img.src = imageUrl;
+        
+        // Apply zoom
+        const applyZoom = (zoom) => {
+            currentZoom = Math.max(minZoom, Math.min(maxZoom, zoom));
+            img.style.transform = `scale(${currentZoom})`;
+        };
+        
+        // Zoom in button
+        const zoomInBtn = modal.querySelector('[data-gchat-zoom-in]');
+        if (zoomInBtn) {
+            zoomInBtn.onclick = () => applyZoom(currentZoom + zoomStep);
+        }
+        
+        // Zoom out button
+        const zoomOutBtn = modal.querySelector('[data-gchat-zoom-out]');
+        if (zoomOutBtn) {
+            zoomOutBtn.onclick = () => applyZoom(currentZoom - zoomStep);
+        }
+        
+        // Fit to screen button
+        const zoomFitBtn = modal.querySelector('[data-gchat-zoom-fit]');
+        if (zoomFitBtn) {
+            zoomFitBtn.onclick = () => applyZoom(1);
+        }
+        
+        // Close handlers
+        const closeModal = () => {
+            modal.style.display = 'none';
+            img.style.transform = 'scale(1)';
+            img.style.opacity = '0';
+            img.src = ''; // Clear image source
+            if (spinner) spinner.style.display = 'flex'; // Reset spinner for next open
+        };
+        
+        const closeBtns = modal.querySelectorAll('[data-gchat-image-close]');
+        closeBtns.forEach(btn => {
+            btn.onclick = closeModal;
+        });
+        
+        // Backdrop click
+        const backdrop = modal.querySelector('.gchat-image-modal-backdrop');
+        if (backdrop) {
+            backdrop.onclick = closeModal;
+        }
+        
+        // Keyboard shortcuts
+        const keyHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', keyHandler);
+            } else if (e.key === '+' || e.key === '=') {
+                applyZoom(currentZoom + zoomStep);
+            } else if (e.key === '-' || e.key === '_') {
+                applyZoom(currentZoom - zoomStep);
+            } else if (e.key === '0') {
+                applyZoom(1);
+            }
+        };
+        document.addEventListener('keydown', keyHandler);
+        
+        // Mouse wheel zoom
+        img.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -zoomStep : zoomStep;
+            applyZoom(currentZoom + delta);
+        }, { passive: false });
     },
     
     handleScroll(event) {
@@ -325,6 +550,62 @@ const GlobalChat = {
         return div.innerHTML;
     },
     
+    getFileIcon(filename) {
+        if (!filename) return 'fa-file';
+        
+        const ext = filename.split('.').pop().toLowerCase();
+        const iconMap = {
+            // Documents
+            'pdf': 'fa-file-pdf',
+            'doc': 'fa-file-word',
+            'docx': 'fa-file-word',
+            'txt': 'fa-file-text',
+            'rtf': 'fa-file-text',
+            // Spreadsheets
+            'xls': 'fa-file-excel',
+            'xlsx': 'fa-file-excel',
+            'csv': 'fa-file-excel',
+            // Presentations
+            'ppt': 'fa-file-powerpoint',
+            'pptx': 'fa-file-powerpoint',
+            // Archives
+            'zip': 'fa-file-archive',
+            'rar': 'fa-file-archive',
+            '7z': 'fa-file-archive',
+            'tar': 'fa-file-archive',
+            'gz': 'fa-file-archive',
+            // Code
+            'js': 'fa-file-code',
+            'html': 'fa-file-code',
+            'css': 'fa-file-code',
+            'php': 'fa-file-code',
+            'py': 'fa-file-code',
+            'java': 'fa-file-code',
+            'cpp': 'fa-file-code',
+            'json': 'fa-file-code',
+            'xml': 'fa-file-code',
+            // Images
+            'jpg': 'fa-file-image',
+            'jpeg': 'fa-file-image',
+            'png': 'fa-file-image',
+            'gif': 'fa-file-image',
+            'svg': 'fa-file-image',
+            'webp': 'fa-file-image',
+            // Video
+            'mp4': 'fa-file-video',
+            'avi': 'fa-file-video',
+            'mov': 'fa-file-video',
+            'mkv': 'fa-file-video',
+            // Audio
+            'mp3': 'fa-file-audio',
+            'wav': 'fa-file-audio',
+            'flac': 'fa-file-audio',
+            'ogg': 'fa-file-audio'
+        };
+        
+        return iconMap[ext] || 'fa-file';
+    },
+    
     showLoading(show) {
         const loading = document.getElementById('gchat-loading');
         if (loading) {
@@ -337,16 +618,247 @@ const GlobalChat = {
         if (window.crudToast) {
             window.crudToast('error', message);
         }
+    },
+    
+    downloadFile(url, filename) {
+        console.log('[gchat-simple] Downloading file:', filename);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.target = '_blank'; // Fallback for browsers that don't support download attribute
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+};
+
+/**
+ * Chat-specific Toast Notification (Top-Right Position)
+ */
+function gchatToast(type, message) {
+    const toast = document.createElement('div');
+    toast.className = `gchat-toast gchat-toast-${type}`;
+    
+    // Icon based on type
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    
+    toast.innerHTML = `
+        <i class="fa ${icons[type] || icons.info}"></i>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => toast.classList.add('gchat-toast-show'), 10);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('gchat-toast-show');
+        setTimeout(() => document.body.removeChild(toast), 300);
+    }, 3000);
+}
+
+/**
+ * Attachment Handler for Global Chat
+ */
+const GchatAttachment = {
+    attachments: [],
+    maxFileSize: 25 * 1024 * 1024, // 25MB
+    maxFiles: 4, // Maximum 4 files total
+    
+    init() {
+        console.log('[gchat-attachment] Initializing...');
+        
+        // Gear button toggle dropdown
+        const gearBtn = document.getElementById('gchat-attachment-btn');
+        const dropdown = document.getElementById('gchat-attachment-dropdown');
+        
+        if (gearBtn && dropdown) {
+            gearBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isVisible = dropdown.style.display !== 'none';
+                dropdown.style.display = isVisible ? 'none' : 'block';
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!gearBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+            
+            // Image input handler
+            const imageInput = document.getElementById('gchat-image-input');
+            if (imageInput) {
+                imageInput.addEventListener('change', (e) => {
+                    this.handleFileSelect(e, 'image');
+                    dropdown.style.display = 'none';
+                });
+            }
+            
+            // File input handler
+            const fileInput = document.getElementById('gchat-file-input');
+            if (fileInput) {
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFileSelect(e, 'file');
+                    dropdown.style.display = 'none';
+                });
+            }
+            
+            console.log('[gchat-attachment] Initialized successfully');
+        } else {
+            console.warn('[gchat-attachment] Elements not found:', {
+                gearBtn: !!gearBtn,
+                dropdown: !!dropdown
+            });
+        }
+    },
+    
+    handleFileSelect(event, type) {
+        const files = Array.from(event.target.files);
+        if (!files || files.length === 0) return;
+        
+        // Check total file count (current + new)
+        const totalFiles = this.attachments.length + files.length;
+        if (totalFiles > this.maxFiles) {
+            gchatToast('warning', `Maximum ${this.maxFiles} files allowed. You have ${this.attachments.length} file(s) already selected.`);
+            event.target.value = '';
+            return;
+        }
+        
+        // Process each file
+        for (const file of files) {
+            // Validate file size
+            if (file.size > this.maxFileSize) {
+                gchatToast('error', `${file.name} exceeds 25MB limit`);
+                continue;
+            }
+            
+            // Validate image type if selecting from image input
+            if (type === 'image' && !file.type.startsWith('image/')) {
+                gchatToast('error', `${file.name} is not a valid image`);
+                continue;
+            }
+            
+            // Add to attachments array
+            const attachment = {
+                id: Date.now() + Math.random(),
+                file: file,
+                type: file.type.startsWith('image/') ? 'image' : 'file',
+                name: file.name,
+                size: file.size,
+                preview: null
+            };
+            
+            // Generate preview for images
+            if (attachment.type === 'image') {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    attachment.preview = e.target.result;
+                    this.attachments.push(attachment);
+                    this.renderPreview();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                this.attachments.push(attachment);
+                this.renderPreview();
+            }
+        }
+        
+        // Reset input so same files can be selected again
+        event.target.value = '';
+    },
+    
+    renderPreview() {
+        const previewContainer = document.getElementById('gchat-preview-container');
+        const previewItems = document.getElementById('gchat-preview-items');
+        
+        if (!previewContainer || !previewItems) return;
+        
+        if (this.attachments.length === 0) {
+            previewContainer.style.display = 'none';
+            return;
+        }
+        
+        previewContainer.style.display = 'block';
+        previewItems.innerHTML = '';
+        
+        this.attachments.forEach(att => {
+            const div = document.createElement('div');
+            div.className = 'gchat-preview-item';
+            
+            if (att.type === 'image' && att.preview) {
+                div.innerHTML = `
+                    <img src="${att.preview}" alt="${this.escapeHtml(att.name)}">
+                    <button class="gchat-preview-remove" data-attachment-id="${att.id}">
+                        <i class="fa fa-times"></i>
+                    </button>
+                `;
+            } else {
+                const fileIcon = window.GlobalChat ? window.GlobalChat.getFileIcon(att.name) : 'fa-file';
+                div.innerHTML = `
+                    <div class="gchat-preview-item-file">
+                        <i class="fa ${fileIcon}"></i>
+                        <span class="filename">${this.escapeHtml(att.name)}</span>
+                    </div>
+                    <button class="gchat-preview-remove" data-attachment-id="${att.id}">
+                        <i class="fa fa-times"></i>
+                    </button>
+                `;
+            }
+            
+            previewItems.appendChild(div);
+        });
+        
+        // Attach remove handlers
+        previewItems.querySelectorAll('.gchat-preview-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseFloat(btn.dataset.attachmentId);
+                this.removeAttachment(id);
+            });
+        });
+    },
+    
+    removeAttachment(id) {
+        this.attachments = this.attachments.filter(a => a.id !== id);
+        this.renderPreview();
+    },
+    
+    clearAttachments() {
+        this.attachments = [];
+        this.renderPreview();
+    },
+    
+    getAttachments() {
+        return this.attachments;
+    },
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 };
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => GlobalChat.init());
+    document.addEventListener('DOMContentLoaded', () => {
+        GlobalChat.init();
+        GchatAttachment.init();
+    });
 } else {
     GlobalChat.init();
+    GchatAttachment.init();
 }
 
 // Expose globally
 window.GlobalChat = GlobalChat;
+window.GchatAttachment = GchatAttachment;
+
 

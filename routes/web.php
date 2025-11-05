@@ -80,8 +80,10 @@ Route::get('/users/restore', function () {
     return response()->json(['message' => 'This endpoint accepts POST requests with { ids: [] } to restore soft-deleted records. Use POST /users/restore.'], 405);
 });
 
-// Global Chat Routes - Real Database Implementation
-Route::get('/chat/messages', [ChatController::class, 'index'])->name('chat.messages');
-Route::post('/chat/messages', [ChatController::class, 'store'])->name('chat.send');
-// (already declared inside auth group)
+// Global Chat Routes - Real Database Implementation (inside auth middleware for protection)
+Route::middleware('auth')->group(function () {
+    Route::get('/chat/messages', [ChatController::class, 'index'])->name('chat.messages');
+    Route::post('/chat/messages', [ChatController::class, 'store'])->name('chat.send');
+    Route::post('/chat/upload', [ChatController::class, 'uploadAttachment'])->name('chat.upload');
+});
 
