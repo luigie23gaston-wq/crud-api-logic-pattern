@@ -1018,8 +1018,36 @@
 }
 
 .gchat-image-modal-close:hover {
-    background: rgba(255, 255, 255, 0.25);
+    /* on hover: swap to light background and apply gradient icon (see rules below) */
+    background: rgba(255, 255, 255, 0.95);
     transform: scale(1.1) rotate(90deg);
+}
+
+/* Close button - gradient background and white bold X */
+.gchat-image-modal-close {
+    background: linear-gradient(135deg, #7c3aed 0%, #34d399 100%);
+    border: none;
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.25);
+}
+
+.gchat-image-modal-close i,
+.gchat-image-modal-close .fa {
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 22px;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    transition: all 0.18s ease;
+}
+
+/* On hover swap: make icon show gradient while button becomes light */
+.gchat-image-modal-close:hover i,
+.gchat-image-modal-close:hover .fa {
+    background: linear-gradient(135deg, #34d399 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    text-shadow: none;
 }
 
 .gchat-image-zoom-controls {
@@ -1036,9 +1064,8 @@
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, #7c3aed 0%, #34d399 100%);
+    border: none;
     color: white;
     font-size: 18px;
     cursor: pointer;
@@ -1046,11 +1073,34 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.22);
 }
 
 .gchat-zoom-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: scale(1.1);
+    /* on hover: swap to light background so icon gradient shows */
+    background: rgba(255, 255, 255, 0.95);
+    transform: scale(1.08);
+    border: 1px solid rgba(124,58,237,0.08);
+}
+
+/* Gradient colored icons for zoom controls (green -> purple) */
+.gchat-zoom-btn i,
+.gchat-zoom-btn .fa {
+    /* icons are white by default */
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
+    background: none;
+    transition: all 0.18s ease;
+}
+
+/* on hover swap: icon becomes gradient text while button background becomes light */
+.gchat-zoom-btn:hover i,
+.gchat-zoom-btn:hover .fa {
+    background: linear-gradient(135deg, #34d399 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
 }
 
 .gchat-image-container {

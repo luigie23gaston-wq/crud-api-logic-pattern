@@ -43,9 +43,12 @@ const GlobalChat = {
         // Listen for open event from gear menu
         document.addEventListener('open-gchat', () => this.open());
         
+        // Ensure send button state reflects current input / attachments
+        this.updateSendButtonState();
+        
         console.log('[gchat-simple] Initialized successfully');
     },
-    
+
     attachListeners() {
         // Close buttons and backdrop clicks
         const closeBtns = this.modal.querySelectorAll('[data-gchat-close]');
@@ -82,8 +85,18 @@ const GlobalChat = {
                     this.sendMessage();
                 }
             });
+
+            // Update send button when input changes
+            this.messageInput.addEventListener('input', () => {
+                this.updateSendButtonState();
+            });
         }
         
+        // Listen for attachment changes (dispatched by GchatAttachment)
+        document.addEventListener('gchat-attachments-changed', (e) => {
+            this.updateSendButtonState();
+        });
+
         // Scroll handling
         if (this.messagesContainer) {
             this.messagesContainer.addEventListener('scroll', (e) => this.handleScroll(e));
@@ -215,6 +228,20 @@ const GlobalChat = {
         }
     },
     
+    // New: enable/disable send button based on message or attachments
+    updateSendButtonState() {
+        try {
+            const hasText = this.messageInput && this.messageInput.value.trim().length > 0;
+            const attachments = window.GchatAttachment ? window.GchatAttachment.getAttachments() : [];
+            const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+            if (this.sendButton) {
+                this.sendButton.disabled = !(hasText || hasAttachments);
+            }
+        } catch (err) {
+            console.warn('[gchat-simple] updateSendButtonState error', err);
+        }
+    },
+
     async sendMessage() {
         const text = this.messageInput.value.trim();
         const attachments = window.GchatAttachment ? window.GchatAttachment.getAttachments() : [];
@@ -281,9 +308,13 @@ const GlobalChat = {
                 }
                 
                 // Clear attachments after successful upload
-                if (window.GchatAttachment) {
+                if (attachments.length > 0 && window.GchatAttachment) {
+                    // Already cleared in upload step, but ensure preview cleared
                     window.GchatAttachment.clearAttachments();
                 }
+
+                // Make sure send button updates after clearing input/attachments
+                this.updateSendButtonState();
             }
             
             // Step 3: Update UI
@@ -307,6 +338,8 @@ const GlobalChat = {
         } finally {
             this.state.sendingMessage = false;
             this.sendButton.disabled = false;
+            // Ensure state reflects current inputs
+            this.updateSendButtonState();
         }
     },
     
@@ -816,23 +849,57 @@ const GchatAttachment = {
             previewItems.appendChild(div);
         });
         
-        // Attach remove handlers
+        // Attach remove handlers (use currentTarget so clicking nested icon still resolves)
         previewItems.querySelectorAll('.gchat-preview-remove').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const id = parseFloat(btn.dataset.attachmentId);
+                const target = e.currentTarget || e.target;
+                const id = parseFloat(target.dataset.attachmentId);
                 this.removeAttachment(id);
             });
         });
+
+        // After building preview and wiring remove handlers, notify listeners:
+        try {
+            document.dispatchEvent(new CustomEvent('gchat-attachments-changed', {
+                detail: { count: this.attachments.length }
+            }));
+        } catch (err) {
+            console.warn('[gchat-attachment] failed to dispatch attachments-changed', err);
+        }
+
+        // Extra safety: call GlobalChat updater directly if available so UI updates immediately
+        if (window.GlobalChat && typeof window.GlobalChat.updateSendButtonState === 'function') {
+            try { window.GlobalChat.updateSendButtonState(); } catch (e) { /* ignore */ }
+        }
     },
     
     removeAttachment(id) {
         this.attachments = this.attachments.filter(a => a.id !== id);
         this.renderPreview();
+        // Ensure listeners are notified when attachments change
+        try {
+            document.dispatchEvent(new CustomEvent('gchat-attachments-changed', {
+                detail: { count: this.attachments.length }
+            }));
+        } catch (err) { /* ignore */ }
+
+        if (window.GlobalChat && typeof window.GlobalChat.updateSendButtonState === 'function') {
+            try { window.GlobalChat.updateSendButtonState(); } catch (e) { /* ignore */ }
+        }
     },
     
     clearAttachments() {
         this.attachments = [];
         this.renderPreview();
+        try {
+            document.dispatchEvent(new CustomEvent('gchat-attachments-changed', {
+                detail: { count: 0 }
+            }));
+        } catch (err) { /* ignore */ }
+
+        if (window.GlobalChat && typeof window.GlobalChat.updateSendButtonState === 'function') {
+            try { window.GlobalChat.updateSendButtonState(); } catch (e) { /* ignore */ }
+        }
     },
     
     getAttachments() {

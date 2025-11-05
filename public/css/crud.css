@@ -138,8 +138,8 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
 #crud-pagination-info { color:#374151; font-size:13px; font-weight:600; padding-left:12px; }
 
 /* Slight padding to keep the right-side pagination controls from touching the container edge */
-.crud-footer-left { padding-right: 12px; }
-.crud-footer-right { padding-left: 12px; }
+.crud-footer-left { padding-right: 12px; margin-left:20px; margin-bottom: 15px;}
+.crud-footer-right { padding-left: 12px; margin-right:20px; margin-bottom: 15px;}
 
 /* Archive pagination uses same visual sizing as main pagination */
 #archive-pagination { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
