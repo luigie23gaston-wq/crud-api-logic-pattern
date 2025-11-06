@@ -375,7 +375,8 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
 @media (max-width: 768px) {
     /* public/css/crud.css - Consolidated styles for the CRUD table UI */
 
-    body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: #f3f6f9; }
+    /* Keep the same app-wide gradient on small viewports so the header remains full-bleed */
+    body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(90deg, #34d399 0%, #7c3aed 100%); }
 
     /* Floating card */
     .crud-container { background: #fff; border-radius: 10px; padding: 0; box-shadow: 0 8px 26px rgba(9,30,66,0.08); overflow: hidden; }
