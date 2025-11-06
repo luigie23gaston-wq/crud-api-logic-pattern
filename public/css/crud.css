@@ -5,7 +5,7 @@
 
 /* Use the same gradient background as the login page. This keeps the project free of the Tailwind CDN
     while maintaining the same visual look. */
-body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(90deg, #34d399 0%, #7c3aed 100%); }
+body { margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(90deg, #34d399 0%, #7c3aed 100%); }
 
 /* Control sizing variables to keep header and inputs aligned */
 :root {
@@ -16,6 +16,43 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
 
 /* Floating card */
 .crud-container { background: #fff; border-radius: 10px; padding: 0; box-shadow: 0 8px 26px rgba(9,30,66,0.08); overflow: hidden; }
+
+/* Kanban / Welcome header helpers (for projects without Tailwind) */
+.kanban-clearfix { background: linear-gradient(90deg,#20815d 0%, #277259 100%); color: #fff; position: relative; }
+.kanban-container { max-width: 1160px; margin: 0 auto; padding: 0 16px; }
+.kanban-clearfix .kanban-container { display:flex; align-items:center; }
+.kanban-header-row { display: flex; align-items: center; justify-content: flex-end; min-height: 48px; }
+
+/* Position the welcome group at the far right edge of the clearfix */
+.kanban-clearfix .kanban-welcome-group {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+}
+
+@media (max-width: 640px) {
+    .kanban-clearfix .kanban-welcome-group { right: 8px; }
+}
+.kanban-welcome-group { display: flex; align-items: center; gap: 12px; }
+.kanban-welcome-text { font-size: 14px; font-weight: 600; color: #ffffff; }
+.kanban-username { font-size: 15px; font-weight: 800; color: #ffffff; }
+.kanban-logout { background: #ffffff; color: #059669; border-radius: 8px; padding: 0; border: 0; font-weight: 700; cursor: pointer; display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; }
+.kanban-logout i { font-size: 20px; }
+.kanban-logout:hover { background: #9c27eb; }
+
+/* Empty navbar styling */
+.kanban-navbar { background: linear-gradient(90deg,#4f09c0 0%, #5121a5 100%); color: #fff; }
+.kanban-navbar .kanban-container { padding: 0 16px; }
+.kanban-navbar .kanban-container { display:flex; align-items:center; min-height:48px; }
+.kanban-separator { height: 20px; }
+
+/* Make sure floating card sits visually below the navbar */
+.floating-crud-card { margin-top: 8px; }
+
+/* Provide a simple replacement for Tailwind's max-w-screen-lg used in layout wrappers */
+.max-w-screen-lg { max-width: 1160px; margin: 0 auto; }
 
 /* Page header spacing to match card header vertical alignment */
 .page-header { padding-top: calc(var(--card-head-vertical-padding) + 6px); padding-bottom: calc(var(--card-head-vertical-padding) + 6px); display:flex; align-items:center; min-height:80px; margin-top: 20px; margin-left:85.3%; }
