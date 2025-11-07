@@ -139,17 +139,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Disable form's native submit behavior — searches should only be triggered by the search button click
   if (form) {
-    form.addEventListener('submit', (e) => { e.preventDefault(); submitSearch(); });
+    form.addEventListener('submit', (e) => { e.preventDefault(); });
   }
 
-  // Also ensure pressing Enter in the input triggers the AJAX search (covers some edge cases)
-  if (input) {
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        submitSearch();
-      }
+  // Wire the search button to trigger the AJAX search. Enter key will not submit the form.
+  const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+  if (submitBtn) {
+    submitBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      submitSearch();
     });
   }
 

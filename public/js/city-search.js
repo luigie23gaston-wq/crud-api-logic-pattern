@@ -90,9 +90,12 @@
     const choice = items[idx];
     input.value = choice.city;
     clearSuggestions();
-    // submit existing weather form (it will handle POST)
+    // trigger the weather search button click (form submit is disabled)
     const form = document.getElementById('weather-form');
-    if (form) form.dispatchEvent(new Event('submit', { cancelable: true }));
+    if (form) {
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) btn.click();
+    }
   }
 
   async function fetchSuggestions(q){
@@ -135,9 +138,12 @@
       e.preventDefault();
       if (activeIndex >= 0) selectSuggestion(activeIndex);
       else {
-        // submit current value
+        // trigger the search button (form submit is disabled)
         const form = document.getElementById('weather-form');
-        if (form) form.dispatchEvent(new Event('submit', { cancelable: true }));
+        if (form) {
+          const btn = form.querySelector('button[type="submit"]');
+          if (btn) btn.click();
+        }
       }
     } else if (e.key === 'Escape') {
       clearSuggestions();
