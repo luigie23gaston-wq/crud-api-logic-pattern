@@ -142,6 +142,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Disable form's native submit behavior — searches should only be triggered by the search button click
   if (form) {
     form.addEventListener('submit', (e) => { e.preventDefault(); });
+    // Prevent Enter key from submitting the form in all cases
+    form.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
+    });
   }
 
   // Wire the search button to trigger the AJAX search. Enter key will not submit the form.
@@ -150,6 +156,13 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.addEventListener('click', (e) => {
       e.preventDefault();
       submitSearch();
+    });
+  }
+
+  // Also prevent Enter on the input itself to be 100% sure browsers won't submit the form
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') e.preventDefault();
     });
   }
 
