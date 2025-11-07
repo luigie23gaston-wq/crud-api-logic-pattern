@@ -43,6 +43,12 @@ class WeatherHistoryController extends Controller
     public function clearAll()
     {
         WeatherSearch::truncate();
-        return back()->with('success','All history cleared.');
+        $msg = 'All history cleared.';
+        // Return JSON for AJAX requests to support AJAX clearing
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['ok' => true, 'message' => $msg]);
+        }
+
+        return back()->with('success', $msg);
     }
 }
