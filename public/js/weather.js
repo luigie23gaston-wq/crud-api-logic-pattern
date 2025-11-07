@@ -136,5 +136,15 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', (e) => { e.preventDefault(); submitSearch(); });
   }
 
+  // Also ensure pressing Enter in the input triggers the AJAX search (covers some edge cases)
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitSearch();
+      }
+    });
+  }
+
   loadHistory();
 });
