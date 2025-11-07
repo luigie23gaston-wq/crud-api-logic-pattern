@@ -135,16 +135,11 @@
       opts.forEach((o,i)=> o.classList.toggle('bg-slate-100', i===activeIndex));
       opts[activeIndex].scrollIntoView({ block: 'nearest' });
     } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (activeIndex >= 0) selectSuggestion(activeIndex);
-      else {
-        // trigger the search button (form submit is disabled)
-        const form = document.getElementById('weather-form');
-        if (form) {
-          const btn = form.querySelector('button[type="submit"]');
-          if (btn) btn.click();
-        }
-      }
+          // Prevent Enter from submitting the form or triggering a search.
+          // Only explicit clicks on the Search button should trigger searches.
+          e.preventDefault();
+          if (activeIndex >= 0) selectSuggestion(activeIndex);
+          // otherwise do nothing on Enter
     } else if (e.key === 'Escape') {
       clearSuggestions();
     }
