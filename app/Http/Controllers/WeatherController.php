@@ -103,20 +103,18 @@ class WeatherController extends Controller
                 return $data;
             });
 
-            // If this request was served from cache, we still want to record the search
-            // in the WeatherSearch table. When the closure executed (cache miss) it already
-            // created a WeatherSearch record, so only create one here when we read from cache.
-            if ($fromCache) {
-                try {
-                    WeatherSearch::create([
-                        'city' => $data['name'] ?? $city,
-                        'country' => $data['sys']['country'] ?? null,
-                        'response' => $data,
-                        'ip' => $request->ip(),
-                    ]);
-                } catch (\Throwable $ee) {
-                    // Ignore logging errors to avoid breaking the main flow
-                }
+            // Record the search in WeatherSearch for both cache hits and misses.
+            // We create a record here after we have $data to ensure each user-triggered
+            // search is stored exactly once.
+            try {
+                WeatherSearch::create([
+                    'city' => $data['name'] ?? $city,
+                    'country' => $data['sys']['country'] ?? null,
+                    'response' => $data,
+                    'ip' => $request->ip(),
+                ]);
+            } catch (\Throwable $ee) {
+                // Ignore logging errors to avoid breaking the main flow
             }
 
             $responsePayload = [
