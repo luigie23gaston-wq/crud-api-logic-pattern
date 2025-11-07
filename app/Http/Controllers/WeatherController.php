@@ -46,11 +46,17 @@ class WeatherController extends Controller
                     } catch (\Throwable $ee) { /* ignore */ }
 
                     $msg = $suggest ? "Please pick a city — we found a province named {$prov->name}; try '{$suggest}' or pick from suggestions." : "Please pick a city — we found a province named {$prov->name}; pick from suggestions.";
-                    return response()->json([
+                    $payload = [
                         'ok' => false,
                         'message' => $msg,
                         'suggestions' => $suggestions,
-                    ], 422);
+                    ];
+                    if ($request->expectsJson()) {
+                        return response()->json($payload, 422);
+                    }
+
+                    // Non-AJAX fallback: flash a friendly message and optional suggestions
+                    return redirect()->back()->with('error', $msg)->with('suggestions', $suggestions);
                 }
             }
         } catch (\Throwable $e) {
@@ -61,10 +67,13 @@ class WeatherController extends Controller
         $apiKey = config('services.openweather.key');
         if (empty($apiKey)) {
             // Helpful error for debugging when API key isn't set
-            return response()->json([
-                'ok' => false,
-                'message' => 'OpenWeather API key not configured. Please set OPENWEATHER_API_KEY in .env and add service config.',
-            ], 500);
+            $msg = 'OpenWeather API key not configured. Please set OPENWEATHER_API_KEY in .env and add service config.';
+            $payload = [ 'ok' => false, 'message' => $msg ];
+            if ($request->expectsJson()) {
+                return response()->json($payload, 500);
+            }
+
+            return redirect()->back()->with('error', $msg);
         }
 
         try {
@@ -98,7 +107,7 @@ class WeatherController extends Controller
                 return $data;
             });
 
-            return response()->json([
+            $responsePayload = [
                 'ok' => true,
                 'data' => [
                     'city' => $data['name'] ?? $city,
@@ -110,21 +119,32 @@ class WeatherController extends Controller
                     'condition' => $data['weather'][0]['description'] ?? null,
                     'icon' => $data['weather'][0]['icon'] ?? null,
                 ],
-            ]);
+            ];
+
+            if ($request->expectsJson()) {
+                return response()->json($responsePayload);
+            }
+
+            // Non-AJAX: flash a minimal success payload to the session so blade can render a fallback
+            return redirect()->back()->with('weather_result', $responsePayload['data']);
         } catch (\Exception $e) {
             // Handle known city-not-found exception as 422; other exceptions become 500
             if ($e->getMessage() === 'City not found or API error.') {
-                return response()->json([
-                    'ok' => false,
-                    'message' => 'City not found or API error.',
-                ], 422);
+                $msg = 'City not found or API error.';
+                if ($request->expectsJson()) {
+                    return response()->json(['ok' => false, 'message' => $msg], 422);
+                }
+
+                return redirect()->back()->with('error', $msg);
             }
 
             \Log::error('WeatherController::fetch error: ' . $e->getMessage());
-            return response()->json([
-                'ok' => false,
-                'message' => 'Unexpected server error while fetching weather.',
-            ], 500);
+            $msg = 'Unexpected server error while fetching weather.';
+            if ($request->expectsJson()) {
+                return response()->json(['ok' => false, 'message' => $msg], 500);
+            }
+
+            return redirect()->back()->with('error', $msg);
         }
     }
 }

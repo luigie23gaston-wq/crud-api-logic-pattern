@@ -60,18 +60,24 @@
       <!-- Search and History Panel -->
       <div class="lg:col-span-1 xl:col-span-2 space-y-6">
         <!-- Search card -->
-        <div class="glass-card p-6">
-          <label class="block text-lg font-medium text-slate-700 mb-4">Search city</label>
-          <form id="weather-form" method="POST" action="{{ route('weather.fetch') }}" class="flex flex-col sm:flex-row gap-3">
-            @csrf
-            <input id="city-input" name="city" type="text" placeholder="e.g. Manila" required
-              class="flex-1 rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base">
-            <button type="submit" class="px-6 py-3 rounded-xl gradient-button text-white font-medium transition-all text-base sm:w-auto w-full">
-              Search
-            </button>
-          </form>
 
-          <div id="error" class="mt-4 text-base text-red-600 hidden"></div>
+        <div class="glass-card p-6">
+                <label class="block text-lg font-medium text-slate-700 mb-4">Search city</label>
+                <form id="weather-form" method="POST" action="{{ route('weather.fetch') }}" class="flex flex-col sm:flex-row gap-3">
+                  @csrf
+                  <input id="city-input" name="city" type="text" placeholder="e.g. Manila" required
+                    class="flex-1 rounded-xl border border-slate-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-base">
+                  <button type="submit" class="px-6 py-3 rounded-xl gradient-button text-white font-medium transition-all text-base sm:w-auto w-full">
+                    Search
+                  </button>
+                </form>
+
+                {{-- Server-side errors (non-AJAX fallbacks) --}}
+                @if(session('error'))
+                  <div id="error" class="mt-4 text-base text-red-600">{{ session('error') }}</div>
+                @else
+                  <div id="error" class="mt-4 text-base text-red-600 hidden"></div>
+                @endif
 
           <div class="mt-6 text-sm text-slate-500">
             Tip: click an item in history to re-search.
@@ -95,35 +101,59 @@
       <!-- Weather result -->
       <div class="lg:col-span-3 xl:col-span-3 space-y-6">
         <div id="result" class="glass-card p-8 min-h-[400px] flex items-center justify-center">
-          <div class="text-center w-full">
-            <div class="flex justify-between items-start mb-8">
-              <div class="text-left">
-                <div class="city-name">Antipolo City, PH</div>
-                <div class="weather-desc mt-2">Few Clouds</div>
-                <div class="text-slate-500 mt-4">Feels like 37°C</div>
+          @if(session('weather_result'))
+            @php $w = session('weather_result'); @endphp
+            <div class="text-center w-full">
+              <div class="flex justify-between items-start mb-8">
+                <div class="text-left">
+                  <div class="city-name">{{ $w['city'] ?? '—' }}, {{ $w['country'] ?? '' }}</div>
+                  <div class="weather-desc mt-2">{{ ucfirst($w['condition'] ?? '') }}</div>
+                  <div class="text-slate-500 mt-4">Feelss like {{ $w['feels_like'] ?? '—' }}°C</div>
+                </div>
+                <div class="temp-display">{{ $w['temp'] ?? '—' }}°C</div>
               </div>
-              <div class="temp-display">32°C</div>
+              <div class="flex justify-center my-6">
+                @if(!empty($w['icon']))
+                  <img src="https://openweathermap.org/img/wn/{{ $w['icon'] }}@2x.png" alt="{{ $w['condition'] ?? '' }}" class="weather-icon">
+                @else
+                  <img src="https://cdn-icons-png.flaticon.com/512/1163/1163661.png" alt="weather" class="weather-icon">
+                @endif
+              </div>
+              <div class="text-slate-500">Updated: Just now</div>
             </div>
-            <div class="flex justify-center my-6">
-              <img src="https://cdn-icons-png.flaticon.com/512/1163/1163661.png" alt="Few Clouds" class="weather-icon">
+          @else
+            <div class="text-center w-full">
+              <div class="flex justify-between items-start mb-8">
+                <div class="text-left">
+                  <div class="city-name">Antipolo City, PH</div>
+                  <div class="weather-desc mt-2">Few Clouds</div>
+                 
+                </div>
+                <div class="temp-display">32°C</div>
+              </div>
+              <div class="flex justify-center my-6">
+                <img src="https://cdn-icons-png.flaticon.com/512/1163/1163661.png" alt="Few Clouds" class="weather-icon">
+              </div>
+              <div class="text-slate-500">Updated: Just now</div>
             </div>
-            <div class="text-slate-500">Updated: Just now</div>
-          </div>
+          @endif
         </div>
 
         <!-- Weather details -->
         <div id="details" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {{-- Ensure $w is always an array to avoid "accessing offset on null" warnings when no session data is present --}}
+          @php $w = session('weather_result', []); @endphp
           <div class="detail-card text-center">
             <div class="text-slate-500 text-base mb-2">Humidity</div>
-            <div class="text-3xl font-bold text-emerald-600">65%</div>
+            <div class="text-3xl font-bold text-emerald-600">{{ $w['humidity'] ?? '—' }}%</div>
           </div>
           <div class="detail-card text-center">
             <div class="text-slate-500 text-base mb-2">Wind</div>
-            <div class="text-3xl font-bold text-purple-600">3.6 m/s</div>
+            <div class="text-3xl font-bold text-purple-600">{{ $w['wind'] ?? '—' }} m/s</div>
           </div>
           <div class="detail-card text-center">
             <div class="text-slate-500 text-base mb-2">Pressure</div>
-            <div class="text-3xl font-bold text-indigo-600">1012 hPa</div>
+            <div class="text-3xl font-bold text-indigo-600">{{ $w['pressure'] ?? '—' }} hPa</div>
           </div>
         </div>
       </div>

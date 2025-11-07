@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Search History — Weather</title>
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-  <link rel="stylesheet" href="{{ asset('css/weather.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="{{ asset('css/weather.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/toast.css') }}">
 </head>
 <body class="gradient-bg">
   <div class="max-w-6xl mx-auto p-6">
     <header class="mb-6">
-      <h1 class="text-3xl font-bold text-white">Search History</h1>
+     
       <!doctype html>
       <html lang="en">
       <head>
@@ -42,8 +43,11 @@
                 </div>
               </div>
 
-              <div class="text-sm">
-                <a href="{{ route('weather.index') }}" class="text-sky-600 hover:text-sky-800 font-medium">Back to Weather</a>
+              <div class="text-sm text-right space-y-2">
+                <button id="clear-history-btn" type="button" class="inline-block rounded-lg px-3 py-2 bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition">Clear History</button>
+                <div>
+                  <a href="{{ route('weather.index') }}" class="text-sky-600 hover:text-sky-800 font-medium">Back to Weather</a>
+                </div>
               </div>
             </div>
 
@@ -57,7 +61,16 @@
           </div>
         </div>
 
+        @includeWhen(file_exists(resource_path('views/admin/clear-history.blade.php')), 'admin.clear-history')
+
+        {{-- server-flashed success message for toast (hidden) --}}
+        @if(session('success'))
+          <div id="server-toast" data-message="{{ session('success') }}" class="hidden"></div>
+        @endif
+
         <script src="{{ asset('js/history-pagination.js') }}" defer></script>
+        <script src="{{ asset('js/history-clear.js') }}" defer></script>
+        <script src="{{ asset('js/toast.js') }}" defer></script>
       </body>
       </html>
-                <span class="px-3 py-1 rounded-md bg-slate-100 text-slate-400">Prev</span>
+                
