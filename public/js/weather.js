@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const detailsEl = document.getElementById('details');
   const csrfMeta = document.querySelector('meta[name="csrf-token"]');
   const csrf = csrfMeta ? csrfMeta.getAttribute('content') : '';
+  // Prevent duplicate concurrent searches
+  let isSearching = false;
 
   function showError(msg) {
     if (!errorBox) return;
@@ -90,6 +92,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const payloadCity = (city || (input && input.value.trim())) || '';
     if (!payloadCity) { showError('Please enter a city name'); return; }
 
+    // Prevent duplicate submissions while a search is in progress
+    if (isSearching) return;
+    isSearching = true;
+
     const cityEl = result.querySelector('.city-name');
     const tempEl = result.querySelector('.temp-display');
     if (cityEl) cityEl.textContent = payloadCity;
@@ -129,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showError('Network error while fetching weather');
     } finally {
       if (submitBtn) { submitBtn.innerHTML = originalText; submitBtn.disabled = false; }
+      isSearching = false;
     }
   }
 
