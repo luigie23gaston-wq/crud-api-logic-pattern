@@ -82,6 +82,10 @@ class WeatherController extends Controller
             // Cache key per-city (lowercased). Cache successful responses for 10 minutes (600s)
             $cacheKey = 'weather:' . strtolower(preg_replace('/\s+/', '_', $city));
 
+            // Record whether we expect to read from cache. If cache has the key, we'll
+            // mark $fromCache=true so we can still log the search after reading cached data.
+            $fromCache = Cache::has($cacheKey);
+
             $data = Cache::remember($cacheKey, 600, function () use ($url, $apiKey, $city, $request) {
                 $res = Http::timeout(10)->get($url, [
                     'q' => $city,
@@ -96,16 +100,24 @@ class WeatherController extends Controller
 
                 $data = $res->json();
 
-                // Save minimal history only when we actually call the API (not on cache hits)
-                WeatherSearch::create([
-                    'city' => $data['name'] ?? $city,
-                    'country' => $data['sys']['country'] ?? null,
-                    'response' => $data,
-                    'ip' => $request->ip(),
-                ]);
-
                 return $data;
             });
+
+            // If this request was served from cache, we still want to record the search
+            // in the WeatherSearch table. When the closure executed (cache miss) it already
+            // created a WeatherSearch record, so only create one here when we read from cache.
+            if ($fromCache) {
+                try {
+                    WeatherSearch::create([
+                        'city' => $data['name'] ?? $city,
+                        'country' => $data['sys']['country'] ?? null,
+                        'response' => $data,
+                        'ip' => $request->ip(),
+                    ]);
+                } catch (\Throwable $ee) {
+                    // Ignore logging errors to avoid breaking the main flow
+                }
+            }
 
             $responsePayload = [
                 'ok' => true,
