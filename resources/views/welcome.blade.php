@@ -42,7 +42,11 @@
     <!-- Empty Navbar (purple background) -->
     <nav class="kanban-navbar">
         <div class="kanban-container">
-            <!-- intentionally left empty for future navigation -->
+            <ul class="kanban-nav-list" role="navigation" aria-label="Main Navigation">
+                <li><a href="{{ url('/') }}" class="kanban-nav-link">Home</a></li>
+                <li><a href="{{ route('weather.index') }}" class="kanban-nav-link">Weather</a></li>
+                <li><a href="{{ route('project.task') }}" class="kanban-nav-link">Project</a></li>
+            </ul>
         </div>
     </nav>
 
@@ -103,7 +107,7 @@
                                         <button type="button" class="gear-item" data-action="export-pdf-selected"><i class="fa fa-file-pdf gear-item-icon"></i> Export Selected PDF</button>
                                         <button type="button" class="gear-item" data-action="uncheck"><i class="fa-solid fa-rectangle-xmark gear-item-icon"></i> Uncheck All</button>
                                         <button type="button" class="gear-item" data-action="open-globalchat"><i class="fa-solid fa-comments gear-item-icon"></i> Global Chat</button>
-                                        <a href="{{ route('weather.index') }}" class="gear-item"><i class="fa-solid fa-cloud-sun-rain gear-item-icon"></i> Weather</a>
+                                      
                                     </div>
                                 </div>
                             </div>

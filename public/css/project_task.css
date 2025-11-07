@@ -1,0 +1,53 @@
+/* project_task.css - styles specific to Project Task / Kanban placeholder
+   This file intentionally contains only the subset of header/navbar styles
+   required for the Project Task view so the module can evolve independently. */
+
+/* Ensure the same visual header as the welcome page */
+.kanban-clearfix { background: linear-gradient(90deg,#20815d 0%, #277259 100%); color: #fff; position: relative; }
+.kanban-container { max-width: 1160px; margin: 0 auto; padding: 0 16px; }
+.kanban-clearfix .kanban-container { display:flex; align-items:center; }
+.kanban-header-row { display: flex; align-items: center; justify-content: flex-end; min-height: 48px; }
+
+.kanban-clearfix .kanban-welcome-group { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); z-index: 50; }
+@media (max-width: 640px) { .kanban-clearfix .kanban-welcome-group { right: 8px; } }
+.kanban-welcome-group { display: flex; align-items: center; gap: 12px; }
+.kanban-welcome-text { font-size: 14px; font-weight: 600; color: #ffffff; }
+.kanban-username { font-size: 15px; font-weight: 800; color: #ffffff; }
+.kanban-logout { background: #2563eb; color: white; border-radius: 8px; padding: 0; border: 0; font-weight: 700; cursor: pointer; display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; }
+.kanban-logout i { font-size: 20px; }
+.kanban-logout:hover { background: #9c27eb; }
+
+/* Navbar */
+.kanban-navbar { background: linear-gradient(90deg,#4f09c0 0%, #5121a5 100%); color: #fff; }
+.kanban-navbar .kanban-container { padding: 0 16px; display:flex; align-items:center; min-height:48px; }
+.kanban-navbar .kanban-nav-list { display:flex; gap:18px; align-items:center; list-style: none; margin: 0; padding: 0; }
+.kanban-navbar .kanban-nav-list li { list-style: none; }
+.kanban-navbar .kanban-nav-link { color: #ffffff; font-weight: 700; text-decoration: none; padding: 10px 12px; border-radius: 8px; }
+.kanban-navbar .kanban-nav-link:hover { background: rgba(255,255,255,0.06); }
+
+/* Small page container placeholder styling */
+.project-task-body { max-width: 1160px; margin: 18px auto; padding: 24px; }
+
+/* Empty state visuals (kept minimal) */
+.project-task-empty { min-height: 320px; border-radius: 12px; border: 1px dashed rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); }
+
+/* Global page background and utilities copied from app styles so this view is self-contained */
+body { margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(90deg, #34d399 0%, #7c3aed 100%); }
+
+:root { --control-h: 44px; }
+
+/* container helper used by other pages */
+.max-w-screen-lg { max-width: 1160px; margin: 0 auto; }
+
+/* small separator used between navbar and main content */
+.kanban-separator { height: 20px; }
+
+/* visually-hidden utility */
+.sr-only { position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); white-space:nowrap; }
+
+/* ensure logout button contrast when hovered */
+.kanban-logout:hover { background: #9c27eb; color: #fff; }
+
+@media (max-width: 640px) {
+   .kanban-clearfix .kanban-welcome-group { right: 8px; }
+}

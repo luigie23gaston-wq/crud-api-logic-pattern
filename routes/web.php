@@ -72,6 +72,11 @@ Route::middleware('auth')->group(function () {
             ]);
         });
     });
+    
+    // Project Task view (placeholder for Kanban / project tasks)
+    Route::get('/project-task', function () {
+        return view('project_task');
+    })->name('project.task');
 });
 
 
