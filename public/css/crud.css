@@ -141,6 +141,14 @@ body { margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-syst
 
 /* Table area */
 .crud-inner { padding: 16px 20px; background: #fff; }
+/* When the table should show an internal vertical scroll (class added by JS),
+   confine the table area height and allow only the table body to scroll while
+   keeping the pagination/footer outside and visible. Also make the header sticky
+   so column labels remain visible while scrolling. */
+.crud-inner.table-scroll-enabled { max-height: 550px; overflow-y: auto; }
+.crud-inner.table-scroll-enabled .overflow-x-auto { display: block; }
+.crud-inner.table-scroll-enabled table { width: 100%; border-collapse: separate; }
+.crud-inner.table-scroll-enabled thead th { position: sticky; top: 0; background: #f8fbff; z-index: 20; }
 table { width: 100%; border-collapse: separate; border-spacing: 0; }
 thead th { font-weight: 700; color: #9aa3b2; text-transform: uppercase; font-size: 12px; letter-spacing: 0.14em; background: transparent; padding: 20px 16px; text-align: left; }
 tbody td { padding: 20px 16px; vertical-align: middle; font-size: 14px; color: #2d3748; }
@@ -387,7 +395,9 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
     .per-page-pill { display:inline-flex; align-items:center; gap:10px; background:#ffffff; color:#0b69b7; padding:6px 12px; border-radius:9999px; border:1px solid rgba(11,105,183,0.08); box-shadow: 0 1px 0 rgba(11,105,183,0.03); }
     .per-page-pill .pill-icon { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9999px; background:#0b69b7; color:#fff; }
 
-    .perpage-dropdown { position:absolute; top:58px; left:0; z-index:400; list-style:none; padding:8px; background:#fff; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.08); min-width:160px; }
+     /* Ensure the per-page dropdown floats above the table header (sticky thead).
+         Increase z-index and allow overflow so it isn't hidden behind other stacking contexts. */
+     .perpage-dropdown { position:absolute; top:58px; left:0; z-index:99999 !important; list-style:none; padding:8px; background:#fff; border-radius:8px; box-shadow:0 6px 18px rgba(2,6,23,0.08); min-width:160px; overflow: visible; }
     .perpage-dropdown li { padding:8px 12px; cursor:pointer; color:#23303b; font-weight:600; }
     .perpage-dropdown li:hover { background:#f1f5f9; }
 
@@ -423,12 +433,12 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
     .action-btn.trash { background:#fb7185; }
     .action-btn i { font-size: 14px; }
 
-    /* Pagination 
+    /* Pagination */
     #crud-pagination { display:flex; align-items:center; gap:8px; }
     #crud-pagination button { padding: 8px 12px; border-radius: 9999px; border: 0; background: transparent; color: #374151; cursor: pointer; font-weight: 600; }
     #crud-pagination button.active-page { background: #2563eb; color: white; box-shadow: 0 6px 20px rgba(37,99,235,0.22); width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; }
     #crud-pagination .page-number { min-width: 36px; height: 36px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; }
-    #crud-pagination-info { color:#6b7280; font-size:13px; }*/
+    #crud-pagination-info { color:#6b7280; font-size:13px; }
 
 
     /* Toasts */
