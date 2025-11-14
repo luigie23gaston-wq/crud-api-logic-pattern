@@ -15,6 +15,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!errorBox) return;
     errorBox.textContent = msg;
     errorBox.classList.remove('hidden');
+
+    // Add a short shake animation to the error text
+    errorBox.classList.add('error-shake');
+
+    // Add red glowing border to the input
+    if (input) {
+      input.classList.add('input-error');
+      // Ensure any previous timeout is cleared
+      if (input._errorTimeout) clearTimeout(input._errorTimeout);
+      input._errorTimeout = setTimeout(() => {
+        input.classList.remove('input-error');
+      }, 4000);
+    }
+
+    // Remove error-shake class when the animation is done (short) and hide the box after 4s
+    setTimeout(() => errorBox.classList.remove('error-shake'), 400);
     setTimeout(() => errorBox.classList.add('hidden'), 4000);
   }
 
@@ -163,6 +179,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (input) {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') e.preventDefault();
+    });
+
+    // When user starts typing, remove the error visual state immediately
+    input.addEventListener('input', () => {
+      input.classList.remove('input-error');
+      if (input._errorTimeout) { clearTimeout(input._errorTimeout); input._errorTimeout = null; }
+      if (errorBox) {
+        errorBox.classList.add('hidden');
+      }
     });
   }
 
