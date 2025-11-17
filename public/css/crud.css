@@ -5,7 +5,7 @@
 
 /* Use the same gradient background as the login page. This keeps the project free of the Tailwind CDN
     while maintaining the same visual look. */
-body { margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(90deg, #34d399 0%, #7c3aed 100%); }
+body { margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(90deg, #34d399 0%, #7c3aed 100%); overflow: hidden; }
 
 /* Control sizing variables to keep header and inputs aligned */
 :root {
@@ -15,7 +15,14 @@ body { margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-syst
 }
 
 /* Floating card */
-.crud-container { background: #fff; border-radius: 10px; padding: 0; box-shadow: 0 8px 26px rgba(9,30,66,0.08); overflow: hidden; }
+.crud-container { background: #fff; border-radius: 10px; padding: 0; box-shadow: 0 8px 26px rgba(9,30,66,0.08); overflow: visible; }
+
+/* Welcome dashboard scroll area - used to contain the page scrolling instead of body */
+.welcome-scroll-area {
+    height: calc(100vh - 96px); /* leave space for the fixed header + separator */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
 
 /* Kanban / Welcome header helpers (for projects without Tailwind) */
 .kanban-clearfix { background: linear-gradient(90deg,#20815d 0%, #277259 100%); color: #fff; position: relative; }
@@ -44,8 +51,7 @@ body { margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-syst
 
 /* Empty navbar styling */
 .kanban-navbar { background: linear-gradient(90deg,#4f09c0 0%, #5121a5 100%); color: #fff; }
-.kanban-navbar .kanban-container { padding: 0 16px; }
-.kanban-navbar .kanban-container { display:flex; align-items:center; min-height:48px; }
+.kanban-navbar .kanban-container { padding-left: 40px; padding-right: 16px; display:flex; align-items:center; min-height:48px; }
 .kanban-navbar .kanban-nav-list { display:flex; gap:18px; align-items:center; list-style: none; margin: 0; padding: 0; }
 .kanban-navbar .kanban-nav-list li { list-style: none; }
 .kanban-navbar .kanban-nav-link { color: #ffffff; font-weight: 700; text-decoration: none; padding: 10px 12px; border-radius: 8px; }
@@ -77,7 +83,7 @@ body { margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-syst
 }
 
 /* Header area */
-.crud-head-wrap { background: #f8fbff; padding: 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; position: relative; }
+.crud-head-wrap { background: #f8fbff; padding: 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; position: relative; overflow: visible; }
 .crud-head-left { display:flex; align-items:center; gap:12px; }
 
 /* Top page header (above the card) */
@@ -103,10 +109,11 @@ body { margin: 0; padding: 0; font-family: ui-sans-serif, system-ui, -apple-syst
 .search-btn { background:#0b69b7; color:#fff; padding:10px 12px; border-radius:9999px; border:none; display:inline-flex; align-items:center; justify-content:center; width:var(--control-h); height:var(--control-h); box-shadow: 0 3px 8px rgba(11,105,183,0.12); }
 
 .gear-btn { background:#0b69b7; color:#fff; width:var(--control-h); height:var(--control-h); border-radius:8px; display:inline-flex; align-items:center; justify-content:center; border: none; box-shadow: 0 3px 8px rgba(11,105,183,0.12); }
+.gear-wrapper { position: relative; }
 .gear-dropdown { min-width: 200px; }
 
 /* Gear dropdown styles */
-.gear-dropdown { position: absolute; right: 0; margin-top: 10px; background: #fff; border-radius: 8px; box-shadow: 0 12px 30px rgba(2,6,23,0.12); padding: 8px; z-index: 500; min-width: 200px; }
+.gear-dropdown { position: absolute; right: 0; margin-top: 10px; background: #fff; border-radius: 8px; box-shadow: 0 12px 30px rgba(2,6,23,0.12); padding: 8px; z-index: 1000; min-width: 200px; max-height: 400px; overflow-y: auto; }
 .gear-dropdown-inner { display:flex; flex-direction:column; gap:6px; }
 .gear-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:8px; background:transparent; border:0; text-align:left; color:#1f2937; font-weight:600; cursor:pointer; }
 .gear-item:hover, .gear-item:focus { background:#f1f5f9; outline:none; }
@@ -390,10 +397,8 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #0b69b7; }
     /* Keep the same app-wide gradient on small viewports so the header remains full-bleed */
     body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(90deg, #34d399 0%, #7c3aed 100%); }
 
-    /* Floating card */
-    .crud-container { background: #fff; border-radius: 10px; padding: 0; box-shadow: 0 8px 26px rgba(9,30,66,0.08); overflow: hidden; }
-
-    /* Header area */
+/* Floating card */
+.crud-container { background: #fff; border-radius: 10px; padding: 0; box-shadow: 0 8px 26px rgba(9,30,66,0.08); overflow: visible; }    /* Header area */
     .crud-head-wrap { background: #f8fbff; padding: 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .crud-head-left { display:flex; align-items:center; gap:12px; position:relative; }
     .per-page-pill { display:inline-flex; align-items:center; gap:10px; background:#ffffff; color:#0b69b7; padding:6px 12px; border-radius:9999px; border:1px solid rgba(11,105,183,0.08); box-shadow: 0 1px 0 rgba(11,105,183,0.03); }

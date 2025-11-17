@@ -30,11 +30,12 @@ return new class extends Migration
     {
         Schema::table('cities', function (Blueprint $table) {
             if (Schema::hasColumn('cities', 'province_id')) {
-                $table->dropForeign([ 'province_id' ]);
                 $table->dropColumn('province_id');
             }
+        });
+
+        Schema::table('cities', function (Blueprint $table) {
             if (Schema::hasColumn('cities', 'region_id')) {
-                $table->dropForeign([ 'region_id' ]);
                 $table->dropColumn('region_id');
             }
         });

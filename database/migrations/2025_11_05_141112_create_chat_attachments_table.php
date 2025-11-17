@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('chat_attachments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('chat_message_id')->constrained('chat_messages')->onDelete('cascade');
-            $table->string('filename'); // original filename
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('original_name'); // original filename
             $table->string('path'); // storage path
             $table->string('mime_type')->nullable();
             $table->integer('size')->nullable(); // file size in bytes

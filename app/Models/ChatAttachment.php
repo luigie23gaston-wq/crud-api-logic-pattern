@@ -15,7 +15,8 @@ class ChatAttachment extends Model
         'path',
         'original_name',
         'mime_type',
-        'size'
+        'size',
+        'type'
     ];
 
     /**

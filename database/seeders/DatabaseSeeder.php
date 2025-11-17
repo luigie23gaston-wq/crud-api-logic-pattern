@@ -12,9 +12,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        // Create default users
+        \App\Models\User::create([
+            'username' => 'UserSample',
+            'email' => 'usersample@example.com',
+            'password' => bcrypt('UserSample1!')
+        ]);
+
+        \App\Models\User::create([
+            'username' => 'admin',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('password')
+        ]);
 
         // seed some sample cities for the weather autosuggest
         $this->call(\Database\Seeders\CitiesSeeder::class);
+        
+        // project seeding removed: projects will be created by users at runtime
     }
 }

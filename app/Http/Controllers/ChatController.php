@@ -139,7 +139,8 @@ class ChatController extends Controller
                 'original_name' => $originalName,
                 'path' => $relativePath,
                 'mime_type' => $mimeType,
-                'size' => $size
+                'size' => $size,
+                'type' => $type
             ]);
             
             \Log::info('[Chat Upload] Attachment created', ['id' => $attachment->id]);

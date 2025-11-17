@@ -17,8 +17,9 @@ return new class extends Migration
     public function down()
     {
         Schema::table('user_records', function (Blueprint $table) {
-            $table->dropForeign(['created_by']);
-            $table->dropColumn('created_by');
+            if (Schema::hasColumn('user_records', 'created_by')) {
+                $table->dropColumn('created_by');
+            }
         });
     }
 };

@@ -11,6 +11,8 @@
   <!-- Project shared styles (header/navbar) and icons -->
   <link rel="stylesheet" href="{{ asset('css/crud.css') }}?v={{ time() }}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Alpine.js for the notification dropdown -->
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
 <body class="gradient-bg">
   <!-- Replicated header / clearfix like the welcome page -->
@@ -18,9 +20,24 @@
     <div class="max-w-screen-lg kanban-container">
       @auth
       <div class="flex items-center justify-end kanban-header-row">
-        <div class="kanban-welcome-group">
+        <div class="kanban-welcome-group flex items-center space-x-3">
+               <!-- Notification bell (Alpine.js + Tailwind) -->
+          <div x-data="{ open: false }" class="relative">
+            <button @click="open = !open" @keydown.escape.window="open = false" aria-haspopup="true" :aria-expanded="open.toString()" type="button" class="text-purple-600 hover:text-purple-800 focus:outline-none" aria-label="Notifications">
+              <i class="fa fa-bell fa-lg" aria-hidden="true"></i>
+            </button>
+
+            <div x-show="open" x-cloak x-transition x-on:click.away="open = false" class="absolute right-0 mt-2 w-72 max-h-56 overflow-auto bg-white shadow-lg rounded-md ring-1 ring-black ring-opacity-5 z-50">
+              <!-- Notification content will be injected dynamically (no hard-coded items) -->
+              <div id="notifications" class="p-2"></div>
+            </div>
+          </div>
+          
           <div class="kanban-welcome-text">Welcome,</div>
           <div id="current-username" class="kanban-username">{{ Auth::user()->username }}</div>
+
+   
+
           <form id="logout-form" method="POST" action="{{ route('auth.logout') }}" class="inline" aria-label="Logout">
             @csrf
             <button id="logoutBtn" type="submit" class="logout-btn kanban-logout" aria-label="Logout">

@@ -21,3 +21,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // City/region search used by the weather autosuggest (debounced frontend)
 use App\Http\Controllers\CityController;
 Route::middleware('throttle:30,1')->get('/search-city', [CityController::class, 'search']);
+

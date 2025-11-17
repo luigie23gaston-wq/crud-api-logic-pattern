@@ -8,10 +8,14 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">-->
+    <link rel="stylesheet" href="{{ asset('css/tailwind.css') }}">
+
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Project CSS -->
     <link rel="stylesheet" href="{{ asset('css/crud.css') }}?v={{ time() }}">
+    
     <!-- Alpine.js (CDN) for lightweight interactivity -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <!-- (Tailwind removed — gradient provided by public/css/crud.css instead) -->
@@ -23,17 +27,31 @@
         <div class="max-w-screen-lg kanban-container">
             @auth
             <div class="flex items-center justify-end kanban-header-row"> <!-- place content at far right -->
-                <div class="kanban-welcome-group">
-                    <div class="kanban-welcome-text">Welcome,</div>
-                    <div id="current-username" class="kanban-username">{{ Auth::user()->username }}</div>
-                    <form id="logout-form" method="POST" action="{{ route('auth.logout') }}" class="inline" aria-label="Logout">
-                        @csrf
-                        <button id="logoutBtn" type="submit" class="logout-btn kanban-logout" aria-label="Logout">
-                            <i class="fa fa-sign-out-alt" aria-hidden="true"></i>
-                            <span class="sr-only">Logout</span>
-                        </button>
-                    </form>
-                </div>
+                                <div class="kanban-welcome-group flex items-center space-x-3">
+                                                                <!-- Notification bell (Alpine.js + Tailwind) -->
+                                        <div x-data="{ open: false }" class="relative notif-root">
+                                            <button class="notif-btn text-purple-600 hover:text-purple-800 focus:outline-none cursor-pointer z-50" @click="open = !open" @keydown.escape.window="open = false" aria-haspopup="true" :aria-expanded="open.toString()" type="button" aria-label="Notifications" style="background:transparent;border:none;padding:0;color:#7c3aed;pointer-events:auto;">
+                                                <i class="fa fa-bell fa-lg" aria-hidden="true"></i>
+                                            </button>
+
+                                            <div class="notif-menu hidden absolute right-0 mt-2 w-72 max-h-56 overflow-auto bg-white shadow-lg rounded-md ring-1 ring-black ring-opacity-5 z-50" x-show="open" x-cloak x-transition x-on:click.away="open = false">
+                                                <!-- Notification content will be injected dynamically (no hard-coded items) -->
+                                                <div id="notifications" class="p-2"></div>
+                                            </div>
+                                        </div>
+                                        <div class="kanban-welcome-text">Welcome,</div>
+                                        <div id="current-username" class="kanban-username">{{ Auth::user()->username }}</div>
+
+        
+
+                                        <form id="logout-form" method="POST" action="{{ route('auth.logout') }}" class="inline" aria-label="Logout">
+                                                @csrf
+                                                <button id="logoutBtn" type="submit" class="logout-btn kanban-logout" aria-label="Logout">
+                                                        <i class="fa fa-sign-out-alt" aria-hidden="true"></i>
+                                                        <span class="sr-only">Logout</span>
+                                                </button>
+                                        </form>
+                                </div>
             </div>
             @endauth
         </div>
@@ -52,6 +70,9 @@
 
     <!-- Separator space -->
     <div class="kanban-separator"></div>
+
+    <!-- Scrolling area: contains the dashboard so body remains non-scrollable -->
+    <div class="welcome-scroll-area">
 
     <div class="min-h-screen flex items-start justify-center py-10">
         <div class="w-full max-w-screen-lg px-4">
@@ -149,6 +170,26 @@
             </div>
         </div>
     </div>
+
+    </div> <!-- /.welcome-scroll-area -->
+
+        <script>
+            // Fallback: if Alpine isn't active on this page, allow the notification button to toggle the menu
+            (function(){
+                document.addEventListener('DOMContentLoaded', function(){
+                    var btn = document.querySelector('.notif-btn');
+                    var menu = document.querySelector('.notif-menu');
+                    if (!btn || !menu) return;
+                    btn.addEventListener('click', function(e){
+                        // if Alpine handled it, skip (aria-expanded will toggle to true)
+                        var expanded = btn.getAttribute('aria-expanded');
+                        if (expanded === 'true') return;
+                        menu.classList.toggle('hidden');
+                        btn.setAttribute('aria-expanded', menu.classList.contains('hidden') ? 'false' : 'true');
+                    });
+                });
+            })();
+        </script>
 
     <!-- Include modal partials -->
     @includeWhen(file_exists(resource_path('views/modal/create.blade.php')), 'modal.create')
