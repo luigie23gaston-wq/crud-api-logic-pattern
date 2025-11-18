@@ -651,17 +651,33 @@ function taskManager() {
         },
         
         async loadSubtasks(taskId) {
+            // Show loading spinner
+            const loading = document.getElementById('subtasks-loading');
+            const container = document.getElementById('subtasks-container');
+            const empty = document.getElementById('subtasks-empty');
+            
+            if (loading) loading.style.display = 'block';
+            if (container) container.style.display = 'none';
+            if (empty) empty.style.display = 'none';
+            
             try {
                 const data = await this._fetch(`/tasks/${this.projectId}/items/${taskId}/subtasks`);
                 if (data.ok) {
                     this.subtasks = data.subtasks || [];
                     requestAnimationFrame(() => {
+                        // Hide loading spinner
+                        if (loading) loading.style.display = 'none';
+                        if (container) container.style.display = 'flex';
+                        
                         this.renderSubtasks();
                         this.initSubtaskSortable();
                     });
                 }
             } catch (err) {
                 console.error('Error loading subtasks:', err);
+                // Hide loading spinner on error
+                if (loading) loading.style.display = 'none';
+                if (container) container.style.display = 'flex';
             }
         },
         
@@ -1002,9 +1018,22 @@ function taskManager() {
         async loadComments(taskId) {
             if (!taskId) return;
             
+            // Show loading spinner
+            const loading = document.getElementById('comments-loading');
+            const container = document.getElementById('comments-container');
+            const empty = document.getElementById('comments-empty');
+            
+            if (loading) loading.style.display = 'block';
+            if (container) container.style.display = 'none';
+            if (empty) empty.style.display = 'none';
+            
             const res = await this._fetch(`/tasks/${this.projectId}/items/${taskId}/comments`, {
                 method: 'GET'
             });
+            
+            // Hide loading spinner
+            if (loading) loading.style.display = 'none';
+            if (container) container.style.display = 'block';
             
             if (res.ok) {
                 this.comments = res.comments || [];
