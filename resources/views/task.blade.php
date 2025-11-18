@@ -120,9 +120,11 @@
                                 <div class="section-title-wrapper">
                                     <span 
                                         class="section-title"
-                                        @dblclick="editSectionTitle(section)"
+                                        @click="editSectionTitle(section)"
                                         x-text="section.title"
-                                        x-show="!section.editing"></span>
+                                        x-show="!section.editing"
+                                        style="cursor: pointer;"
+                                        title="Click to edit"></span>
                                     <input 
                                         type="text"
                                         class="section-title-input"
@@ -130,7 +132,8 @@
                                         x-show="section.editing"
                                         @blur="saveSectionTitle(section)"
                                         @keydown.enter="saveSectionTitle(section)"
-                                        @keydown.escape="cancelSectionEdit(section)">
+                                        @keydown.escape="cancelSectionEdit(section)"
+                                        style="cursor: text;">
                                     <button @click="showAddTaskModal(section)" class="section-add-task-btn" type="button" title="Add task">
                                         <i class="fas fa-plus"></i>
                                     </button>
@@ -146,39 +149,54 @@
                                  @dragover="allowDrop($event)"
                                  @dragenter="dragEnter($event)"
                                  @dragleave="dragLeave($event)">
-                                <template x-for="task in section.task_items" :key="task.id">
+                                <template x-for="(task, taskIndex) in section.task_items" :key="task.id">
                                     <div class="task-card"
-                                         @click="editTask(task)">
+                                         :data-task-id="task.id">
                                         <div class="task-card-header">
-                                            <h3 class="task-card-title" x-text="task.title"></h3>
+                                            <h3 class="task-card-title" 
+                                                x-show="!task.editing"
+                                                @click.stop="startEditTaskTitle(task)"
+                                                x-text="task.title || ''"
+                                                style="cursor: pointer;"
+                                                title="Click to edit"></h3>
+                                            <input 
+                                                type="text"
+                                                class="task-card-title-input"
+                                                x-show="task.editing"
+                                                x-model="task.title"
+                                                @blur="saveTaskTitle(task)"
+                                                @keydown.enter="saveTaskTitle(task)"
+                                                @keydown.escape="cancelEditTaskTitle(task)"
+                                                @click.stop
+                                                style="cursor: text;">
                                             <button @click.stop="deleteTask(task.id)" class="task-card-delete" title="Delete" type="button">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
                                         
-                                        <div class="task-progress-section">
+                                        <div class="task-progress-section" @click="editTask(task)" style="cursor: pointer;">
                                             <div class="task-progress-label">
                                                 <span>Progress</span>
-                                                <span x-text="task.progress + '%'"></span>
+                                                <span x-text="(task.progress || 0) + '%'"></span>
                                             </div>
                                             <div class="task-progress-bar">
-                                                <div class="task-progress-fill" :style="'width: ' + task.progress + '%'"></div>
+                                                <div class="task-progress-fill" :style="'width: ' + (task.progress || 0) + '%'"></div>
                                             </div>
                                         </div>
 
                                         <!-- Task Description -->
-                                        <template x-if="task.description">
-                                            <div class="task-description" style="margin-top: 0.75rem; font-size: 0.875rem; color: #6b7280; line-height: 1.4;">
+                                        <template x-if="task.description && task.description.length > 0">
+                                            <div class="task-description" @click="editTask(task)" style="margin-top: 0.75rem; font-size: 0.875rem; color: #6b7280; line-height: 1.4; cursor: pointer;">
                                                 <p x-text="task.description"></p>
                                             </div>
                                         </template>
                                         
-                                        <div class="task-meta">
+                                        <div class="task-meta" @click="editTask(task)" style="cursor: pointer;">
                                             <span>
                                                 <i class="fas fa-check-circle"></i>
-                                                <span x-text="(task.subtasks?.filter(s => s.is_completed).length || 0) + '/' + (task.subtasks?.length || 0)"></span>
+                                                <span x-text="((task.subtasks && Array.isArray(task.subtasks)) ? task.subtasks.filter(s => s.is_completed).length : 0) + '/' + ((task.subtasks && Array.isArray(task.subtasks)) ? task.subtasks.length : 0)"></span>
                                             </span>
-                                            <span x-text="task.date"></span>
+                                            <span x-text="task.date || ''"></span>
                                         </div>
 
                                         <!-- View Subtask Button -->

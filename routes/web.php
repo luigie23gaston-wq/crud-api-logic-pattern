@@ -95,6 +95,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/tasks/{project}/sections', [TaskController::class, 'storeSection'])->name('tasks.storeSection');
     Route::post('/tasks/{project}/sections/reorder', [TaskController::class, 'reorderSections'])->name('tasks.reorderSections');
     Route::post('/tasks/{project}/sections/{section}', [TaskController::class, 'updateSection'])->name('tasks.updateSection');
+    Route::post('/tasks/{project}/sections/{section}/reorder-items', [TaskController::class, 'reorderSectionItems'])->name('tasks.reorderSectionItems');
     Route::delete('/tasks/{project}/sections/{section}', [TaskController::class, 'destroySection'])->name('tasks.destroySection');
     
     // Task items management

@@ -377,6 +377,28 @@ html, body {
     color: #1f2937;
     flex: 1;
     word-break: break-word;
+    transition: all 0.2s ease;
+}
+
+.task-card-title:hover {
+    color: #8b5cf6;
+}
+
+.task-card-title-input {
+    font-weight: 600;
+    color: #1f2937;
+    flex: 1;
+    border: 2px solid #8b5cf6;
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    outline: none;
+    font-size: 1rem;
+    background: white;
+}
+
+.task-card-title-input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
 .task-card-delete {
@@ -1237,6 +1259,8 @@ html, body {
 .section-title:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 6px rgba(139, 92, 246, 0.3);
+    background: linear-gradient(135deg, #9333ea 0%, #b565f7 100%);
+    opacity: 0.95;
 }
 
 .section-title-input {
@@ -1403,19 +1427,21 @@ html, body {
 
 /* Task card drag states for SortableJS */
 .task-card.task-card-ghost {
-    opacity: 0.4 !important;
-    background: #e0e7ff !important;
-    border: 2px dashed #8b5cf6 !important;
+    opacity: 0.5;
+    background: #e0e7ff;
+    border: 2px dashed #8b5cf6;
 }
 
 .task-card.task-card-chosen {
-    background: #f3f4f6 !important;
-    cursor: grabbing !important;
+    background: #f3f4f6;
+    cursor: grabbing;
+    opacity: 0.9;
 }
 
 .task-card.task-card-dragging {
-    opacity: 1 !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
-    cursor: grabbing !important;
-    transform: rotate(2deg) !important;
+    opacity: 0.95;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    cursor: grabbing;
+    transform: rotate(2deg);
+    background: white;
 }

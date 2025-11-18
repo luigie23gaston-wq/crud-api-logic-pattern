@@ -1,14 +1,16 @@
 let taskManager_instance = null;
 
 function taskManager() {
+    if (taskManager_instance) return taskManager_instance;
+    
     taskManager_instance = {
-        projectId: document.querySelector('[data-project-id]').getAttribute('data-project-id'),
+        projectId: document.querySelector('[data-project-id]')?.getAttribute('data-project-id') || '',
         draggedTask: null,
         draggedFrom: null,
         draggedSection: null,
         draggedSubtaskIndex: null,
         subtaskSortable: null,
-        taskSortables: [],  // Track task card sortable instances
+        taskSortables: [],
         selectedSection: null,
         editingTask: null,
         showModal: false,
@@ -30,322 +32,245 @@ function taskManager() {
             newSubtaskTitle: ''
         },
         
+        // Cache DOM elements and CSRF token
+        _cache: {
+            csrfToken: null,
+            domElements: {}
+        },
+        
         init() {
-            console.log('taskManager initialized!');
-            console.log('Project ID:', this.projectId);
+            this._cache.csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (!this.projectId) {
+                console.error('Project ID not found');
+                return;
+            }
             this.loadSections();
         },
         
-        initTaskCardSortables() {
-            console.log('🎯 Initializing task card sortables for all sections');
-            const self = this;
-            
-            // Wait for Alpine to finish rendering
-            this.$nextTick(() => {
-                // Destroy any existing sortables first
-                if (this.taskSortables) {
-                    this.taskSortables.forEach(s => s.destroy());
+        // Optimized section loading with caching
+        async loadSections() {
+            try {
+                const response = await this._fetch(`/tasks/${this.projectId}/sections`);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.sections = this._processSectionsData(data.sections);
+                    this._initTaskCardSortables();
                 }
-                this.taskSortables = [];
-                
-                // Initialize Sortable for each section's task container
-                document.querySelectorAll('.section-tasks').forEach((container, index) => {
-                    if (!self.sections[index]) return;
+            } catch (err) {
+                console.error('Error loading sections:', err);
+            }
+        },
+        
+        _processSectionsData(sections) {
+            return (sections || []).map(section => ({
+                ...section,
+                editing: false,
+                originalTitle: section.title,
+                task_items: (section.task_items || []).map(task => ({
+                    ...task,
+                    subtasks: this._ensureSubtasksArray(task.subtasks)
+                }))
+            }));
+        },
+        
+        _ensureSubtasksArray(subtasks) {
+            if (Array.isArray(subtasks)) return subtasks;
+            if (typeof subtasks === 'string' && subtasks) {
+                try {
+                    return JSON.parse(subtasks);
+                } catch (e) {
+                    console.warn('Failed to parse subtasks:', e);
+                }
+            }
+            return [];
+        },
+        
+        // Optimized sortable initialization
+        _initTaskCardSortables() {
+            // Clear existing sortables
+            this._destroyTaskSortables();
+            
+            requestAnimationFrame(() => {
+                const containers = document.querySelectorAll('.section-tasks');
+                this.taskSortables = Array.from(containers).map(container => {
+                    const sectionEl = container.closest('.task-section');
+                    if (!sectionEl) return null;
                     
-                    const sortable = Sortable.create(container, {
+                    const sectionIndex = parseInt(sectionEl.dataset.sectionIndex);
+                    if (isNaN(sectionIndex) || !this.sections[sectionIndex]) return null;
+                    
+                    return Sortable.create(container, {
                         group: 'tasks',
-                        animation: 200,
+                        animation: 150,
                         ghostClass: 'task-card-ghost',
                         chosenClass: 'task-card-chosen',
                         dragClass: 'task-card-dragging',
+                        draggable: '.task-card',
                         forceFallback: false,
-                        onEnd: function(evt) {
-                            console.log('📋 Task card drag ended');
-                            
-                            // Get section indexes from DOM
-                            const fromSectionEl = evt.from.closest('.task-section');
-                            const toSectionEl = evt.to.closest('.task-section');
-                            
-                            const fromIndex = parseInt(fromSectionEl?.dataset.sectionIndex);
-                            const toIndex = parseInt(toSectionEl?.dataset.sectionIndex);
-                            
-                            if (isNaN(fromIndex) || isNaN(toIndex)) {
-                                console.error('Invalid section indexes');
-                                return;
-                            }
-                            
-                            const fromSection = self.sections[fromIndex];
-                            const toSection = self.sections[toIndex];
-                            
-                            if (!fromSection || !toSection) {
-                                console.error('Sections not found');
-                                return;
-                            }
-                            
-                            const oldIndex = evt.oldIndex;
-                            const newIndex = evt.newIndex;
-                            
-                            // Update Alpine's data
-                            const movedTask = fromSection.task_items[oldIndex];
-                            
-                            // Remove from source
-                            fromSection.task_items.splice(oldIndex, 1);
-                            
-                            // Add to target
-                            toSection.task_items.splice(newIndex, 0, movedTask);
-                            
-                            // Force Alpine to update
-                            self.sections = [...self.sections];
-                            
-                            // Update backend if moved to different section
-                            if (fromIndex !== toIndex) {
-                                self.moveTaskToSection(movedTask.id, toSection.id);
-                            } else {
-                                self.showToast('Task reordered');
-                            }
-                        }
+                        fallbackTolerance: 3,
+                        onEnd: (evt) => this._handleTaskDragEnd(evt)
                     });
-                    
-                    self.taskSortables.push(sortable);
-                });
-                
-                console.log('✅ Task card sortables initialized:', self.taskSortables.length);
+                }).filter(Boolean);
             });
         },
         
-        loadSections() {
-            const projectId = this.projectId;
-            fetch(`/tasks/${projectId}/sections`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        _destroyTaskSortables() {
+            this.taskSortables.forEach(sortable => {
+                try {
+                    sortable.destroy();
+                } catch (e) {
+                    // Silent fail - sortable already destroyed
                 }
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.ok) {
-                    this.sections = data.sections.map(section => ({
-                        ...section,
-                        editing: false,
-                        originalTitle: section.title,
-                        task_items: (section.task_items || []).map(task => ({
-                            ...task,
-                            // Ensure subtasks is always an array
-                            subtasks: Array.isArray(task.subtasks) 
-                                ? task.subtasks 
-                                : (typeof task.subtasks === 'string' && task.subtasks 
-                                    ? JSON.parse(task.subtasks) 
-                                    : [])
-                        }))
-                    }));
-                    
-                    // Initialize task card sortables after sections render
-                    setTimeout(() => {
-                        this.initTaskCardSortables();
-                    }, 300);
-                }
-            })
-            .catch(err => console.error('Error loading sections:', err));
+            });
+            this.taskSortables = [];
         },
         
-        // Drag and Drop Methods
-        dragStart(event, task, sectionId) {
-            this.draggedTask = task;
-            this.draggedFrom = sectionId;
-            event.dataTransfer.effectAllowed = 'move';
-            event.currentTarget.classList.add('opacity-50');
-        },
-        
-        dragEnd(event) {
-            event.currentTarget.classList.remove('opacity-50');
-            this.draggedTask = null;
-            this.draggedFrom = null;
-        },
-        
-        allowDrop(event) {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'move';
-        },
-        
-        dragEnter(event) {
-            event.preventDefault();
-            if (event.currentTarget.classList.contains('section-tasks')) {
-                event.currentTarget.classList.add('drag-over');
-            }
-        },
-        
-        dragLeave(event) {
-            if (event.currentTarget.classList.contains('section-tasks')) {
-                event.currentTarget.classList.remove('drag-over');
-            }
-        },
-        
-        drop(event, targetSectionId) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('drag-over');
+        async _handleTaskDragEnd(evt) {
+            // Clean up drag classes immediately
+            this._cleanupDragClasses();
             
-            if (!this.draggedTask || !this.draggedFrom) return;
+            const { from, to, oldIndex, newIndex } = evt;
+            const fromSectionEl = from.closest('.task-section');
+            const toSectionEl = to.closest('.task-section');
             
-            const sourceSectionId = this.draggedFrom;
+            const fromIndex = parseInt(fromSectionEl?.dataset.sectionIndex);
+            const toIndex = parseInt(toSectionEl?.dataset.sectionIndex);
             
-            // If dropped in the same section, do nothing
-            if (sourceSectionId === targetSectionId) {
+            if (isNaN(fromIndex) || isNaN(toIndex)) {
+                console.error('Invalid section indexes', { fromIndex, toIndex });
+                this.loadSections();
                 return;
             }
             
-            // Find source and target sections
-            const sourceSection = this.sections.find(s => s.id === sourceSectionId);
-            const targetSection = this.sections.find(s => s.id === targetSectionId);
+            const taskCard = evt.item;
+            const taskId = this._getTaskIdFromElement(taskCard);
             
-            if (!sourceSection || !targetSection) return;
-            
-            // Remove task from source section
-            const taskIndex = sourceSection.task_items.findIndex(t => t.id === this.draggedTask.id);
-            if (taskIndex === -1) return;
-            
-            const [movedTask] = sourceSection.task_items.splice(taskIndex, 1);
-            
-            // Add task to target section
-            targetSection.task_items.push(movedTask);
-            
-            // Update task's section in backend
-            this.moveTaskToSection(movedTask.id, targetSectionId);
-        },
-        
-        moveTaskToSection(taskId, newSectionId) {
-            const projectId = this.projectId;
-            fetch(`/tasks/${projectId}/items/${taskId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    task_section_id: newSectionId
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.ok) {
-                    this.showToast('Task moved successfully');
-                } else {
-                    // Reload sections if update failed
-                    this.loadSections();
-                }
-            })
-            .catch(err => {
-                console.error('Error moving task:', err);
+            if (!taskId) {
+                console.error('Task ID not found on card');
                 this.loadSections();
+                return;
+            }
+            
+            try {
+                if (fromIndex !== toIndex) {
+                    await this._moveTaskBetweenSections(taskId, fromIndex, toIndex, newIndex);
+                } else {
+                    await this._reorderTasksInSection(toIndex);
+                }
+            } catch (error) {
+                console.error('Error during drag operation:', error);
+                this.loadSections();
+            }
+        },
+        
+        _cleanupDragClasses() {
+            document.querySelectorAll('.task-card').forEach(card => {
+                card.classList.remove('task-card-ghost', 'task-card-chosen', 'task-card-dragging');
+                card.style.opacity = '';
+                card.style.transform = '';
             });
         },
         
-        // Section Drag and Drop Methods
-        sectionDragStart(event, section) {
-            this.draggedSection = section;
-            event.dataTransfer.effectAllowed = 'move';
-            event.currentTarget.style.cursor = 'grabbing';
-            const sectionEl = event.currentTarget.closest('.task-section');
-            if (sectionEl) {
-                sectionEl.style.opacity = '0.5';
+        _getTaskIdFromElement(element) {
+            return parseInt(element.dataset.taskId || element.getAttribute('data-task-id'));
+        },
+        
+        async _moveTaskBetweenSections(taskId, fromIndex, toIndex, newIndex) {
+            const toSection = this.sections[toIndex];
+            if (!toSection) throw new Error('Target section not found');
+            
+            // Optimistic UI update
+            const fromSection = this.sections[fromIndex];
+            const taskIndex = fromSection.task_items.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) throw new Error('Task not found in source section');
+            
+            const [movedTask] = fromSection.task_items.splice(taskIndex, 1);
+            toSection.task_items.splice(newIndex, 0, movedTask);
+            
+            try {
+                await this._updateTaskSection(taskId, toSection.id, newIndex + 1);
+                this.showToast('Task moved successfully');
+            } catch (error) {
+                // Revert optimistic update on failure
+                fromSection.task_items.splice(taskIndex, 0, movedTask);
+                toSection.task_items.splice(newIndex, 1);
+                throw error;
             }
         },
         
-        sectionDragEnd(event) {
-            event.currentTarget.style.cursor = 'grab';
-            const sectionEl = event.currentTarget.closest('.task-section');
-            if (sectionEl) {
-                sectionEl.style.opacity = '1';
-            }
-            this.draggedSection = null;
-            // Remove all drop zone indicators
-            document.querySelectorAll('.task-section').forEach(el => {
-                el.classList.remove('section-drop-zone');
-            });
-        },
-        
-        sectionAllowDrop(event) {
-            if (!this.draggedSection) return;
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'move';
-        },
-        
-        sectionDragEnter(event) {
-            if (!this.draggedSection) return;
-            event.preventDefault();
-            const target = event.currentTarget;
-            if (target && target.classList.contains('task-section')) {
-                target.classList.add('section-drop-zone');
-            }
-        },
-        
-        sectionDragLeave(event) {
-            if (!this.draggedSection) return;
-            const target = event.currentTarget;
-            if (target && target.classList.contains('task-section')) {
-                target.classList.remove('section-drop-zone');
-            }
-        },
-        
-        sectionDrop(event, targetSection) {
-            event.preventDefault();
+        async _reorderTasksInSection(sectionIndex) {
+            const section = this.sections[sectionIndex];
+            if (!section) throw new Error('Section not found');
             
-            if (!this.draggedSection || this.draggedSection.id === targetSection.id) return;
+            const container = document.querySelector(`[data-section-index="${sectionIndex}"] .section-tasks`);
+            if (!container) throw new Error('Section container not found');
             
-            const draggedIndex = this.sections.findIndex(s => s.id === this.draggedSection.id);
-            const targetIndex = this.sections.findIndex(s => s.id === targetSection.id);
-            
-            if (draggedIndex === -1 || targetIndex === -1) return;
-            
-            // Remove from old position
-            const [movedSection] = this.sections.splice(draggedIndex, 1);
-            
-            // Insert at new position
-            this.sections.splice(targetIndex, 0, movedSection);
-            
-            // Update order values
-            this.sections.forEach((section, index) => {
-                section.order = index + 1;
-            });
-            
-            // Save new order to backend
-            this.saveSectionOrder();
-        },
-        
-        saveSectionOrder() {
-            const projectId = this.projectId;
-            const orderData = this.sections.map((section, index) => ({
-                id: section.id,
+            const taskCards = Array.from(container.children);
+            const reorderedTasks = taskCards.map((card, index) => ({
+                id: this._getTaskIdFromElement(card),
                 order: index + 1
-            }));
+            })).filter(task => task.id && !isNaN(task.id));
             
-            fetch(`/tasks/${projectId}/sections/reorder`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({ sections: orderData })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.ok) {
-                    this.showToast('Section order updated');
-                } else {
-                    this.loadSections();
-                }
-            })
-            .catch(err => {
-                console.error('Error updating section order:', err);
-                this.loadSections();
+            if (reorderedTasks.length === 0) return;
+            
+            // Update order locally for immediate feedback
+            reorderedTasks.forEach(rt => {
+                const task = section.task_items.find(t => t.id === rt.id);
+                if (task) task.order = rt.order;
             });
+            
+            try {
+                await this._reorderTasksInBackend(section.id, reorderedTasks);
+            } catch (error) {
+                // Reload on error to sync with server state
+                this.loadSections();
+                throw error;
+            }
         },
         
-        // Section Management
+        // Optimized API calls
+        async _fetch(url, options = {}) {
+            const config = {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': this._cache.csrfToken,
+                    ...options.headers
+                },
+                ...options
+            };
+            
+            if (config.body && typeof config.body !== 'string') {
+                config.headers['Content-Type'] = 'application/json';
+                config.body = JSON.stringify(config.body);
+            }
+            
+            return fetch(url, config);
+        },
+        
+        async _updateTaskSection(taskId, sectionId, order) {
+            const response = await this._fetch(`/tasks/${this.projectId}/items/${taskId}`, {
+                method: 'POST',
+                body: { task_section_id: sectionId, order }
+            });
+            
+            const data = await response.json();
+            if (!data.ok) throw new Error('Failed to move task');
+            return data;
+        },
+        
+        async _reorderTasksInBackend(sectionId, tasks) {
+            const response = await this._fetch(`/tasks/${this.projectId}/sections/${sectionId}/reorder-items`, {
+                method: 'POST',
+                body: { items: tasks }
+            });
+            
+            const data = await response.json();
+            if (!data.ok) throw new Error('Failed to reorder tasks');
+            return data;
+        },
+        
+        // Optimized section management
         showAddSectionModal() {
-            // Create a temporary section with empty title and editing mode enabled
             const tempSection = {
                 id: 'temp_' + Date.now(),
                 project_id: parseInt(this.projectId),
@@ -359,160 +284,128 @@ function taskManager() {
             
             this.sections.push(tempSection);
             
-            // Focus the input after Alpine renders it
-            this.$nextTick(() => {
-                const inputs = document.querySelectorAll('.section-title-input');
-                const lastInput = inputs[inputs.length - 1];
-                if (lastInput) lastInput.focus();
-            });
+            this._focusElement('.section-title-input:last-of-type');
         },
         
         editSectionTitle(section) {
             section.editing = true;
             section.originalTitle = section.title;
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('.section-title-input');
-                inputs.forEach(input => {
-                    if (input.value === section.title) {
-                        input.focus();
-                        input.select();
-                    }
-                });
-            }, 50);
+            this._focusElement('.section-title-input', section.title);
         },
         
-        saveSectionTitle(section) {
+        async saveSectionTitle(section) {
             const trimmedTitle = section.title.trim();
             
-            // If it's a new section and no title provided, remove it
-            if (section.isNew && !trimmedTitle) {
-                this.sections = this.sections.filter(s => s.id !== section.id);
+            if (!trimmedTitle) {
+                this.cancelSectionEdit(section);
                 return;
             }
             
-            // If it's an existing section and no title provided, restore original
-            if (!section.isNew && !trimmedTitle) {
-                section.title = section.originalTitle;
-                section.editing = false;
-                return;
+            try {
+                if (section.isNew) {
+                    await this._createSection(trimmedTitle, section);
+                } else {
+                    await this._updateSection(section, trimmedTitle);
+                }
+            } catch (error) {
+                console.error('Error saving section:', error);
+                this.cancelSectionEdit(section);
+                this.showToast('Error saving section');
             }
+        },
+        
+        async _createSection(title, tempSection) {
+            const response = await this._fetch(`/tasks/${this.projectId}/sections`, {
+                method: 'POST',
+                body: { title }
+            });
             
-            // If it's a new section with title, create it in database
-            if (section.isNew) {
-                const projectId = this.projectId;
-                fetch(`/tasks/${projectId}/sections`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({ title: trimmedTitle })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.ok) {
-                        // Replace temp section with real one from server
-                        const index = this.sections.findIndex(s => s.id === section.id);
-                        if (index !== -1) {
-                            this.sections[index] = {
-                                ...data.section,
-                                task_items: [],
-                                editing: false,
-                                originalTitle: data.section.title
-                            };
-                        }
-                        this.showToast('Section created');
-                    }
-                })
-                .catch(err => {
-                    console.error('Error creating section:', err);
-                    this.sections = this.sections.filter(s => s.id !== section.id);
-                    this.showToast('Error creating section');
-                });
+            const data = await response.json();
+            if (data.ok) {
+                const index = this.sections.findIndex(s => s.id === tempSection.id);
+                if (index !== -1) {
+                    this.sections[index] = {
+                        ...data.section,
+                        task_items: [],
+                        editing: false,
+                        originalTitle: data.section.title
+                    };
+                }
+                this.showToast('Section created');
             } else {
-                // Update existing section
-                const projectId = this.projectId;
-                fetch(`/tasks/${projectId}/sections/${section.id}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({ title: trimmedTitle })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.ok) {
-                        section.editing = false;
-                        section.originalTitle = trimmedTitle;
-                        section.title = trimmedTitle;
-                        this.showToast('Section updated');
-                    }
-                })
-                .catch(err => {
-                    console.error('Error updating section:', err);
-                    section.title = section.originalTitle;
-                    section.editing = false;
-                });
+                throw new Error('Server rejected section creation');
+            }
+        },
+        
+        async _updateSection(section, title) {
+            const response = await this._fetch(`/tasks/${this.projectId}/sections/${section.id}`, {
+                method: 'POST',
+                body: { title }
+            });
+            
+            const data = await response.json();
+            if (data.ok) {
+                section.editing = false;
+                section.originalTitle = title;
+                this.showToast('Section updated');
+            } else {
+                throw new Error('Server rejected section update');
             }
         },
         
         cancelSectionEdit(section) {
-            // If it's a new section being cancelled, remove it
             if (section.isNew) {
                 this.sections = this.sections.filter(s => s.id !== section.id);
             } else {
-                // If editing existing section, restore original title
                 section.title = section.originalTitle;
                 section.editing = false;
             }
         },
         
-        deleteSection(sectionId) {
+        async deleteSection(sectionId) {
             if (!confirm('Delete this section and all its tasks?')) return;
             
-            const projectId = this.projectId;
-            fetch(`/tasks/${projectId}/sections/${sectionId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            })
-            .then(r => r.json())
-            .then(data => {
+            try {
+                const response = await this._fetch(`/tasks/${this.projectId}/sections/${sectionId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
                 if (data.ok) {
                     this.sections = this.sections.filter(s => s.id !== sectionId);
                     this.showToast('Section deleted');
                 }
-            })
-            .catch(err => console.error('Error deleting section:', err));
+            } catch (err) {
+                console.error('Error deleting section:', err);
+                this.showToast('Error deleting section');
+            }
         },
         
-        // Task Management
+        // Optimized task management
         showAddTaskModal(section) {
-            this.editingTask = null;
-            this.selectedSection = section;
-            this.modalForm = { title: '', description: '', progress: 0, date: '', subtasks: '0/0' };
-            this.showModal = true;
+            this._prepareTaskModal(null, section);
         },
         
         editTask(task) {
-            this.editingTask = task;
             const section = this.sections.find(s => s.task_items.some(t => t.id === task.id));
+            this._prepareTaskModal(task, section);
+        },
+        
+        _prepareTaskModal(task, section) {
+            this.editingTask = task;
             this.selectedSection = section;
-            this.modalForm = {
+            this.modalForm = task ? {
                 title: task.title,
                 description: task.description || '',
                 progress: task.progress,
                 date: task.date || '',
                 subtasks: task.subtasks
-            };
+            } : { title: '', description: '', progress: 0, date: '', subtasks: '0/0' };
+            
             this.showModal = true;
         },
         
-        saveTask() {
+        async saveTask() {
             if (!this.modalForm.title.trim()) {
                 alert('Task title is required');
                 return;
@@ -522,12 +415,6 @@ function taskManager() {
                 alert('Please select a section');
                 return;
             }
-            
-            const projectId = this.projectId;
-            const isEdit = !!this.editingTask;
-            const endpoint = isEdit 
-                ? `/tasks/${projectId}/items/${this.editingTask.id}`
-                : `/tasks/${projectId}/items`;
             
             const payload = {
                 task_section_id: this.selectedSection.id,
@@ -540,43 +427,42 @@ function taskManager() {
                 date: this.modalForm.date || ''
             };
             
-            fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(r => r.json())
-            .then(data => {
+            const isEdit = !!this.editingTask;
+            const endpoint = isEdit 
+                ? `/tasks/${this.projectId}/items/${this.editingTask.id}`
+                : `/tasks/${this.projectId}/items`;
+            
+            try {
+                const response = await this._fetch(endpoint, {
+                    method: 'POST',
+                    body: payload
+                });
+                
+                const data = await response.json();
                 if (data.ok) {
-                    if (isEdit) {
-                        // Update existing task
-                        const section = this.sections.find(s => s.id === this.selectedSection.id);
-                        if (section) {
-                            const index = section.task_items.findIndex(t => t.id === this.editingTask.id);
-                            if (index !== -1) {
-                                section.task_items[index] = data.item;
-                            }
-                        }
-                    } else {
-                        // Add new task to section
-                        const section = this.sections.find(s => s.id === this.selectedSection.id);
-                        if (section) {
-                            if (!section.task_items) section.task_items = [];
-                            section.task_items.push(data.item);
-                        }
-                    }
+                    this._updateTaskInUI(data.item, isEdit);
                     this.closeModal();
-                    this.showToast('Task ' + (isEdit ? 'updated' : 'created') + ' successfully!');
+                    this.showToast(`Task ${isEdit ? 'updated' : 'created'} successfully!`);
                 }
-            })
-            .catch(err => {
+            } catch (err) {
                 console.error('Error saving task:', err);
                 alert('Error saving task');
-            });
+            }
+        },
+        
+        _updateTaskInUI(taskData, isEdit) {
+            const section = this.sections.find(s => s.id === this.selectedSection.id);
+            if (!section) return;
+            
+            if (isEdit) {
+                const index = section.task_items.findIndex(t => t.id === this.editingTask.id);
+                if (index !== -1) {
+                    section.task_items[index] = taskData;
+                }
+            } else {
+                if (!section.task_items) section.task_items = [];
+                section.task_items.push(taskData);
+            }
         },
         
         closeModal() {
@@ -585,46 +471,76 @@ function taskManager() {
             this.modalForm = { title: '', description: '', progress: 0, date: '', subtasks: '0/0' };
         },
         
-        deleteTask(taskId) {
+        async deleteTask(taskId) {
             if (!confirm('Delete this task?')) return;
             
-            const projectId = this.projectId;
-            fetch(`/tasks/${projectId}/items/${taskId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            })
-            .then(r => r.json())
-            .then(data => {
+            try {
+                const response = await this._fetch(`/tasks/${this.projectId}/items/${taskId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
                 if (data.ok) {
-                    // Remove task from sections array
                     this.sections.forEach(section => {
                         section.task_items = section.task_items.filter(t => t.id !== taskId);
                     });
                     this.showToast('Task deleted');
                 }
-            })
-            .catch(err => console.error('Error deleting task:', err));
+            } catch (err) {
+                console.error('Error deleting task:', err);
+                this.showToast('Error deleting task');
+            }
         },
         
-        confirmTrashTask() {
-            this.showToast('Trash functionality coming soon');
+        // Optimized inline task editing
+        startEditTaskTitle(task) {
+            task.originalTitle = task.title;
+            task.editing = true;
+            this._focusElement('.task-card-title-input', task.title);
         },
         
-        showInviteModal() {
-            this.showToast('Invite feature coming soon');
+        async saveTaskTitle(task) {
+            const trimmedTitle = task.title.trim();
+            
+            if (!trimmedTitle) {
+                task.title = task.originalTitle;
+                task.editing = false;
+                return;
+            }
+            
+            if (trimmedTitle === task.originalTitle) {
+                task.editing = false;
+                return;
+            }
+            
+            try {
+                const response = await this._fetch(`/tasks/${this.projectId}/items/${task.id}`, {
+                    method: 'POST',
+                    body: { title: trimmedTitle }
+                });
+                
+                const data = await response.json();
+                if (data.ok) {
+                    task.editing = false;
+                    task.originalTitle = trimmedTitle;
+                    this.showToast('Task title updated');
+                } else {
+                    throw new Error('Server rejected update');
+                }
+            } catch (err) {
+                console.error('Error updating task title:', err);
+                task.title = task.originalTitle;
+                task.editing = false;
+                this.showToast('Error updating task title');
+            }
         },
         
-        showToast(message) {
-            const toast = document.createElement('div');
-            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2500);
+        cancelEditTaskTitle(task) {
+            task.title = task.originalTitle;
+            task.editing = false;
         },
         
-        // Subtask Management
+        // Optimized subtask management
         openSubtaskModal(task) {
             this.currentTaskForSubtasks = task;
             this.subtaskForm.newSubtaskTitle = '';
@@ -634,98 +550,54 @@ function taskManager() {
         
         initSubtaskSortable() {
             const container = document.getElementById('subtasks-container');
-            console.log('🔧 Initializing Sortable, container:', container);
-            console.log('📋 Current subtasks:', this.subtasks);
-            
             if (!container) {
-                console.error('❌ Subtasks container not found!');
+                console.error('Subtasks container not found');
                 return;
             }
             
             if (this.subtaskSortable) {
-                console.log('🔄 Destroying existing Sortable instance');
                 this.subtaskSortable.destroy();
             }
             
-            const self = this;
-            
             this.subtaskSortable = Sortable.create(container, {
-                animation: 200,
-                // handle: '.drag-handle',  // Temporarily disabled for testing
+                animation: 150,
                 draggable: '.subtask-item',
                 ghostClass: 'subtask-ghost',
                 chosenClass: 'subtask-chosen',
                 dragClass: 'subtask-dragging',
-                easing: 'cubic-bezier(1, 0, 0, 1)',
-                forceFallback: false,
-                fallbackTolerance: 3,
-                onStart: function(evt) {
-                    console.log('🎯 Drag started, oldIndex:', evt.oldIndex);
-                },
-                onEnd: function(evt) {
-                    console.log('✋ Drag ended, oldIndex:', evt.oldIndex, 'newIndex:', evt.newIndex);
-                    
-                    const oldIndex = evt.oldIndex;
-                    const newIndex = evt.newIndex;
-                    
-                    if (oldIndex === newIndex) {
-                        console.log('⏸️ No position change');
-                        return;
-                    }
-                    
-                    console.log('📊 Before reorder:', self.subtasks.map(s => s.title));
-                    
-                    // Create a copy of the subtasks array
-                    const reorderedSubtasks = [...self.subtasks];
-                    
-                    // Remove from old position
-                    const [movedItem] = reorderedSubtasks.splice(oldIndex, 1);
-                    
-                    // Insert at new position
-                    reorderedSubtasks.splice(newIndex, 0, movedItem);
-                    
-                    console.log('📊 After reorder:', reorderedSubtasks.map(s => s.title));
-                    
-                    // Update Alpine's reactive array
-                    self.subtasks = reorderedSubtasks;
-                    
-                    // Update order property and save to backend
-                    self.subtasks.forEach((subtask, index) => {
-                        subtask.order = index + 1;
-                    });
-                    
-                    console.log('💾 Calling reorderSubtasks...');
-                    self.reorderSubtasks();
-                }
+                onEnd: (evt) => this._handleSubtaskDragEnd(evt)
             });
-            
-            console.log('✅ Sortable initialized successfully');
         },
         
-        loadSubtasks(taskId) {
-            console.log('🔍 Loading subtasks for task:', taskId);
-            const projectId = this.projectId;
-            fetch(`/tasks/${projectId}/items/${taskId}/subtasks`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            })
-            .then(r => r.json())
-            .then(data => {
-                console.log('📦 Subtasks loaded:', data);
+        async _handleSubtaskDragEnd(evt) {
+            const { oldIndex, newIndex } = evt;
+            if (oldIndex === newIndex) return;
+            
+            // Update array immediately for responsive UI
+            const reorderedSubtasks = [...this.subtasks];
+            const [movedItem] = reorderedSubtasks.splice(oldIndex, 1);
+            reorderedSubtasks.splice(newIndex, 0, movedItem);
+            
+            // Update order and save
+            this.subtasks = reorderedSubtasks.map((subtask, index) => ({
+                ...subtask,
+                order: index + 1
+            }));
+            
+            await this._reorderSubtasks();
+        },
+        
+        async loadSubtasks(taskId) {
+            try {
+                const response = await this._fetch(`/tasks/${this.projectId}/items/${taskId}/subtasks`);
+                const data = await response.json();
                 if (data.ok) {
                     this.subtasks = data.subtasks || [];
-                    console.log('⏱️ Scheduling Sortable init in 100ms...');
-                    // Initialize Sortable after subtasks are loaded and rendered
-                    setTimeout(() => {
-                        console.log('🚀 Calling initSubtaskSortable now...');
-                        this.initSubtaskSortable();
-                    }, 100);
+                    requestAnimationFrame(() => this.initSubtaskSortable());
                 }
-            })
-            .catch(err => console.error('❌ Error loading subtasks:', err));
+            } catch (err) {
+                console.error('Error loading subtasks:', err);
+            }
         },
         
         closeSubtaskModal() {
@@ -734,184 +606,101 @@ function taskManager() {
             this.subtasks = [];
             this.subtaskForm.newSubtaskTitle = '';
             
-            // Destroy Sortable instance
             if (this.subtaskSortable) {
                 this.subtaskSortable.destroy();
                 this.subtaskSortable = null;
             }
         },
         
-        addNewSubtask() {
+        async addNewSubtask() {
             if (!this.subtaskForm.newSubtaskTitle.trim()) {
                 this.showToast('Subtask title cannot be empty');
                 return;
             }
             
-            const projectId = this.projectId;
-            const taskId = this.currentTaskForSubtasks.id;
-            
-            fetch(`/tasks/${projectId}/items/${taskId}/subtasks`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    title: this.subtaskForm.newSubtaskTitle,
-                    is_completed: false
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
+            try {
+                const response = await this._fetch(
+                    `/tasks/${this.projectId}/items/${this.currentTaskForSubtasks.id}/subtasks`,
+                    {
+                        method: 'POST',
+                        body: {
+                            title: this.subtaskForm.newSubtaskTitle,
+                            is_completed: false
+                        }
+                    }
+                );
+                
+                const data = await response.json();
                 if (data.ok) {
                     this.subtasks.push(data.subtask);
                     this.subtaskForm.newSubtaskTitle = '';
                     this.showToast('Subtask added');
                     this.updateTaskProgress();
                 }
-            })
-            .catch(err => console.error('Error adding subtask:', err));
+            } catch (err) {
+                console.error('Error adding subtask:', err);
+            }
         },
         
-        removeSubtask(subtaskId) {
+        async removeSubtask(subtaskId) {
             if (!confirm('Delete this subtask?')) return;
             
-            const projectId = this.projectId;
-            const taskId = this.currentTaskForSubtasks.id;
-            
-            fetch(`/tasks/${projectId}/items/${taskId}/subtasks/${subtaskId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            })
-            .then(r => r.json())
-            .then(data => {
+            try {
+                const response = await this._fetch(
+                    `/tasks/${this.projectId}/items/${this.currentTaskForSubtasks.id}/subtasks/${subtaskId}`,
+                    { method: 'DELETE' }
+                );
+                
+                const data = await response.json();
                 if (data.ok) {
                     this.subtasks = this.subtasks.filter(s => s.id !== subtaskId);
                     this.showToast('Subtask removed');
                     this.updateTaskProgress();
                 }
-            })
-            .catch(err => console.error('Error removing subtask:', err));
+            } catch (err) {
+                console.error('Error removing subtask:', err);
+            }
         },
         
-        toggleSubtaskCompletion(subtaskIndex) {
-            if (!this.subtasks[subtaskIndex]) return;
-            
+        async toggleSubtaskCompletion(subtaskIndex) {
             const subtask = this.subtasks[subtaskIndex];
-            const projectId = this.projectId;
-            const taskId = this.currentTaskForSubtasks.id;
+            if (!subtask) return;
             
-            fetch(`/tasks/${projectId}/items/${taskId}/subtasks/${subtask.id}/toggle`, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            })
-            .then(r => r.json())
-            .then(data => {
+            try {
+                const response = await this._fetch(
+                    `/tasks/${this.projectId}/items/${this.currentTaskForSubtasks.id}/subtasks/${subtask.id}/toggle`,
+                    { method: 'POST' }
+                );
+                
+                const data = await response.json();
                 if (data.ok) {
                     this.subtasks[subtaskIndex].is_completed = data.subtask.is_completed;
                     this.updateTaskProgress();
                 }
-            })
-            .catch(err => console.error('Error toggling subtask:', err));
-        },
-        
-        // Subtask Drag and Drop Methods
-        subtaskDragStart(event, index) {
-            this.draggedSubtaskIndex = index;
-            event.dataTransfer.effectAllowed = 'move';
-            event.currentTarget.style.opacity = '0.5';
-            event.currentTarget.style.cursor = 'grabbing';
-        },
-        
-        subtaskDragEnd(event) {
-            event.currentTarget.style.opacity = '1';
-            event.currentTarget.style.cursor = 'move';
-            this.draggedSubtaskIndex = null;
-        },
-        
-        subtaskAllowDrop(event) {
-            if (this.draggedSubtaskIndex === null) return;
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'move';
-        },
-        
-        subtaskDragEnter(event) {
-            if (this.draggedSubtaskIndex === null) return;
-            event.preventDefault();
-            event.currentTarget.classList.add('subtask-drag-over');
-        },
-        
-        subtaskDragLeave(event) {
-            if (this.draggedSubtaskIndex === null) return;
-            event.currentTarget.classList.remove('subtask-drag-over');
-        },
-        
-        subtaskDrop(event, targetIndex) {
-            event.preventDefault();
-            event.currentTarget.classList.remove('subtask-drag-over');
-            
-            if (this.draggedSubtaskIndex === null || this.draggedSubtaskIndex === targetIndex) return;
-            
-            // Remove from old position
-            const [movedSubtask] = this.subtasks.splice(this.draggedSubtaskIndex, 1);
-            
-            // Insert at new position
-            this.subtasks.splice(targetIndex, 0, movedSubtask);
-            
-            // Update order and save
-            this.reorderSubtasks();
-            
-            this.draggedSubtaskIndex = null;
-        },
-        
-        moveSubtaskUp(subtaskIndex) {
-            if (subtaskIndex > 0) {
-                [this.subtasks[subtaskIndex - 1], this.subtasks[subtaskIndex]] = 
-                [this.subtasks[subtaskIndex], this.subtasks[subtaskIndex - 1]];
-                this.reorderSubtasks();
+            } catch (err) {
+                console.error('Error toggling subtask:', err);
             }
         },
         
-        moveSubtaskDown(subtaskIndex) {
-            if (subtaskIndex < this.subtasks.length - 1) {
-                [this.subtasks[subtaskIndex + 1], this.subtasks[subtaskIndex]] = 
-                [this.subtasks[subtaskIndex], this.subtasks[subtaskIndex + 1]];
-                this.reorderSubtasks();
-            }
-        },
-        
-        reorderSubtasks() {
-            const projectId = this.projectId;
-            const taskId = this.currentTaskForSubtasks.id;
-            
-            this.subtasks.forEach((subtask, index) => {
-                subtask.order = index + 1;
-            });
-            
-            fetch(`/tasks/${projectId}/items/${taskId}/subtasks/reorder`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    subtasks: this.subtasks.map(s => ({ id: s.id, order: s.order }))
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
+        async _reorderSubtasks() {
+            try {
+                const response = await this._fetch(
+                    `/tasks/${this.projectId}/items/${this.currentTaskForSubtasks.id}/subtasks/reorder`,
+                    {
+                        method: 'POST',
+                        body: {
+                            subtasks: this.subtasks.map(s => ({ id: s.id, order: s.order }))
+                        }
+                    }
+                );
+                
+                const data = await response.json();
                 if (data.ok) {
                     this.showToast('Subtasks reordered');
                 }
-            })
-            .catch(err => console.error('Error reordering subtasks:', err));
+            } catch (err) {
+                console.error('Error reordering subtasks:', err);
+            }
         },
         
         getSubtaskProgress() {
@@ -920,47 +709,82 @@ function taskManager() {
             return Math.round((completed / this.subtasks.length) * 100);
         },
         
-        updateTaskProgress() {
+        async updateTaskProgress() {
             if (!this.currentTaskForSubtasks) return;
             
             const progress = this.getSubtaskProgress();
-            const projectId = this.projectId;
-            const taskId = this.currentTaskForSubtasks.id;
             
-            // Update the task's progress in the backend
-            fetch(`/tasks/${projectId}/items/${taskId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    progress: progress,
-                    alt_progress: progress
-                })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.ok) {
-                    // Update the task in the sections array
-                    this.sections.forEach(section => {
-                        const taskIndex = section.task_items.findIndex(t => t.id === taskId);
-                        if (taskIndex !== -1) {
-                            section.task_items[taskIndex].progress = progress;
-                            section.task_items[taskIndex].alt_progress = progress;
-                            section.task_items[taskIndex].subtasks = this.subtasks;
+            try {
+                const response = await this._fetch(
+                    `/tasks/${this.projectId}/items/${this.currentTaskForSubtasks.id}`,
+                    {
+                        method: 'POST',
+                        body: {
+                            progress: progress,
+                            alt_progress: progress
                         }
-                    });
-                    
-                    // Update currentTaskForSubtasks
-                    if (this.currentTaskForSubtasks) {
-                        this.currentTaskForSubtasks.progress = progress;
-                        this.currentTaskForSubtasks.subtasks = this.subtasks;
                     }
+                );
+                
+                const data = await response.json();
+                if (data.ok) {
+                    this._updateTaskProgressInUI(this.currentTaskForSubtasks.id, progress);
                 }
-            })
-            .catch(err => console.error('Error updating task progress:', err));
+            } catch (err) {
+                console.error('Error updating task progress:', err);
+            }
+        },
+        
+        _updateTaskProgressInUI(taskId, progress) {
+            this.sections.forEach(section => {
+                const taskIndex = section.task_items.findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    section.task_items[taskIndex].progress = progress;
+                    section.task_items[taskIndex].alt_progress = progress;
+                    section.task_items[taskIndex].subtasks = this.subtasks;
+                }
+            });
+            
+            if (this.currentTaskForSubtasks) {
+                this.currentTaskForSubtasks.progress = progress;
+                this.currentTaskForSubtasks.subtasks = this.subtasks;
+            }
+        },
+        
+        // Utility methods
+        _focusElement(selector, value = null) {
+            requestAnimationFrame(() => {
+                const elements = document.querySelectorAll(selector);
+                const target = value 
+                    ? Array.from(elements).find(el => el.value === value)
+                    : elements[elements.length - 1];
+                
+                if (target) {
+                    target.focus();
+                    target.select();
+                }
+            });
+        },
+        
+        showToast(message) {
+            // Remove existing toasts
+            document.querySelectorAll('.toast-message').forEach(toast => toast.remove());
+            
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 toast-message';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.remove(), 2500);
+        },
+        
+        // Legacy methods for compatibility (minimal changes)
+        confirmTrashTask() {
+            this.showToast('Trash functionality coming soon');
+        },
+        
+        showInviteModal() {
+            this.showToast('Invite feature coming soon');
         },
         
         updateTaskInList() {
@@ -970,4 +794,3 @@ function taskManager() {
     
     return taskManager_instance;
 }
- 

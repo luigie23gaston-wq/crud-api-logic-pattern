@@ -382,6 +382,31 @@ class TaskController extends Controller
     }
 
     /**
+     * Reorder task items within a specific section
+     */
+    public function reorderSectionItems(Request $request, Project $project, TaskSection $section)
+    {
+        if ($section->project_id !== $project->id || $project->user_id !== Auth::id()) {
+            return response()->json(['ok' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|integer',
+            'items.*.order' => 'required|integer',
+        ]);
+
+        foreach ($validated['items'] as $item) {
+            TaskItem::where('project_id', $project->id)
+                ->where('task_section_id', $section->id)
+                ->where('id', $item['id'])
+                ->update(['order' => $item['order']]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
      * Delete a section
      */
     public function destroySection(Project $project, TaskSection $section)
