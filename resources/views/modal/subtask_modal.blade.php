@@ -4,8 +4,8 @@
      @click.self="closeSubtaskModal()"
      @keydown.escape.window="closeSubtaskModal()"
      style="z-index: 999999 !important;"
-     class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center overflow-y-auto">
-    <div @click.stop style="z-index: 1000000 !important;" class="bg-white rounded-xl w-full max-w-2xl mx-4 my-8 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] relative">
+     class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4">
+    <div @click.stop style="z-index: 1000000 !important;" class="bg-white rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative">
         
         <!-- Modal Header with Gradient -->
         <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
@@ -37,7 +37,7 @@
         </div>
 
         <!-- Modal Body - Scrollable Content -->
-        <div class="p-6 overflow-y-auto flex-1">
+        <div class="p-6 overflow-y-auto flex-1" style="max-height: calc(90vh - 140px);">
             <!-- Checklist Section -->
             <div class="mb-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
@@ -45,74 +45,59 @@
                     Subtasks
                 </h2>
                 
-                <div id="subtasks-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <template x-for="(subtask, index) in subtasks" :key="subtask.id">
-                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors subtask-item"
-                             :data-subtask-id="subtask.id"
-                             style="cursor: grab;">
-                            
-                            <!-- Drag Handle -->
-                            <div class="drag-handle p-2" 
-                                 style="cursor: grab; color: #6366f1; font-size: 1.25rem;"
-                                 title="✋ Drag to reorder">
-                                <i class="fas fa-grip-vertical"></i>
+                <!-- Add Subtask Form -->
+                <div class="mb-6 p-4 bg-indigo-50 rounded-lg">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <i class="fas fa-plus-circle text-indigo-600"></i>
+                        Add New Subtask
+                    </h2>
+                    <div>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <input type="text" 
+                                       x-model="subtaskForm.newSubtaskTitle"
+                                       placeholder="Enter subtask title..."
+                                       @keydown.enter="addNewSubtask()"
+                                       @input="subtaskInputError = false"
+                                       :class="{
+                                           'border-red-500 ring-2 ring-red-200': subtaskInputError,
+                                           'border-gray-300': !subtaskInputError
+                                       }"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
                             </div>
-                            
-                            <!-- Checkbox -->
-                            <div class="pt-1" @mousedown.stop @click.stop>
-                                <input type="checkbox" 
-                                       class="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer" 
-                                       :checked="subtask.is_completed"
-                                       @change="toggleSubtaskCompletion(index)">
-                            </div>
-                            
-                            <!-- Content -->
-                            <div class="flex-1 min-w-0">
-                                <p class="text-gray-800 font-medium" 
-                                   x-text="subtask.title" 
-                                   :style="subtask.is_completed ? 'text-decoration: line-through; opacity: 0.6;' : ''"></p>
-                                <div class="text-xs text-gray-500 mt-1">
-                                    <span x-text="subtask.is_completed ? 'Completed' : 'Pending'"></span>
-                                </div>
-                            </div>
-                            
-                            <!-- Delete Button -->
-                            <div @mousedown.stop @click.stop>
-                                <button @click="removeSubtask(subtask.id)"
-                                        class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                        type="button"
-                                        title="Delete">
-                                    <i class="fas fa-trash text-sm"></i>
-                                </button>
-                            </div>
+                            <button @click="addNewSubtask()" 
+                                    class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap font-medium" 
+                                    type="button">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
                         </div>
-                    </template>
-                    
-                    <!-- Empty State -->
-                    <div x-show="subtasks.length === 0" class="text-center py-8 text-gray-400">
-                        <i class="fas fa-check-circle text-4xl mb-3 block"></i>
-                        <p>No subtasks yet. Add one to get started!</p>
+                        <p x-show="subtaskInputError" 
+                           x-transition
+                           class="text-red-500 text-sm mt-2">
+                            Required
+                        </p>
                     </div>
                 </div>
-            </div>
 
-            <!-- Add Subtask Form -->
-            <div class="mb-6 p-4 bg-indigo-50 rounded-lg">
-                <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                    <i class="fas fa-plus-circle text-indigo-600"></i>
-                    Add New Subtask
-                </h2>
-                <div class="flex gap-2">
-                    <input type="text" 
-                           x-model="subtaskForm.newSubtaskTitle"
-                           placeholder="Enter subtask title..."
-                           @keydown.enter="addNewSubtask()"
-                           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                    <button @click="addNewSubtask()" 
-                            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap font-medium" 
-                            type="button">
-                        <i class="fas fa-plus"></i> Add
-                    </button>
+                <div id="subtasks-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <!-- Subtasks will be rendered by JavaScript to avoid Alpine.js conflicts with Sortable.js -->
+                </div>
+                
+                <!-- Loading Spinner for Subtasks -->
+                <div id="subtasks-loading" style="display: none;" class="text-center py-12">
+                    <div class="inline-block">
+                        <svg class="animate-spin h-12 w-12 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="mt-3 text-gray-600 font-medium">Loading subtasks...</p>
+                    </div>
+                </div>
+                
+                <!-- Empty State -->
+                <div id="subtasks-empty" x-show="subtasks.length === 0" class="text-center py-8 text-gray-400">
+                    <i class="fas fa-check-circle text-4xl mb-3 block"></i>
+                    <p>No subtasks yet. Add one to get started!</p>
                 </div>
             </div>
 
@@ -131,7 +116,50 @@
                     </div>
                 </div>
 
-                <div class="text-center py-6 text-gray-400">
+                <!-- Comment Input -->
+                <div class="mb-4">
+                    <textarea 
+                        x-model="newComment"
+                        id="comment-input"
+                        rows="3"
+                        placeholder="Write a comment..."
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                        :class="commentInputError ? 'border-red-500' : ''"
+                    ></textarea>
+                    <p x-show="commentInputError" 
+                       x-transition
+                       class="text-red-500 text-sm mt-1">
+                        Comment cannot be empty
+                    </p>
+                </div>
+                
+                <div class="flex justify-end mb-6">
+                    <button @click="postComment()" 
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2"
+                            type="button">
+                        <i class="fas fa-paper-plane"></i>
+                        Post Comment
+                    </button>
+                </div>
+
+                <!-- Comments List -->
+                <div id="comments-container" class="space-y-4">
+                    <!-- Comments will be rendered by JavaScript -->
+                </div>
+                
+                <!-- Loading Spinner for Comments -->
+                <div id="comments-loading" style="display: none;" class="text-center py-8">
+                    <div class="inline-block">
+                        <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="mt-2 text-gray-600 text-sm">Loading comments...</p>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="comments-empty" class="text-center py-6 text-gray-400">
                     <p class="font-semibold text-sm uppercase tracking-wide mb-1">NO COMMENTS YET</p>
                     <p class="text-sm">Be the first one to post a comment.</p>
                 </div>

@@ -29,4 +29,9 @@ class TaskSection extends Model
     {
         return $this->hasMany(TaskItem::class, 'task_section_id')->orderBy('order');
     }
+
+    public function deletedByUser()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
+    }
 }

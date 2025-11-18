@@ -102,6 +102,8 @@ class TaskController extends Controller
      */
     public function destroyItem(Project $project, TaskItem $taskItem)
     {
+        $taskItem->deleted_by = Auth::id();
+        $taskItem->save();
         $taskItem->delete();
         return response()->json(['ok' => true]);
     }
@@ -176,8 +178,16 @@ class TaskController extends Controller
     /**
      * Update a subtask
      */
-    public function updateSubtask(Request $request, Project $project, TaskItem $taskItem, Subtask $subtask)
+    public function updateSubtask(Request $request, Project $project, $taskItem, $subtask)
     {
+        // Manually resolve to avoid scoped binding issues
+        $taskItem = TaskItem::find($taskItem);
+        $subtask = Subtask::find($subtask);
+        
+        if (!$taskItem || !$subtask) {
+            return response()->json(['ok' => false, 'message' => 'Not found'], 404);
+        }
+        
         if ($subtask->task_item_id !== $taskItem->id || $taskItem->project_id !== $project->id || $project->user_id !== Auth::id()) {
             return response()->json(['ok' => false], 403);
         }
@@ -234,8 +244,15 @@ class TaskController extends Controller
     /**
      * Reorder subtasks within a task
      */
-    public function reorderSubtasks(Request $request, Project $project, TaskItem $taskItem)
+    public function reorderSubtasks(Request $request, Project $project, $taskItem)
     {
+        // Manually resolve TaskItem to avoid scoped binding issues
+        $taskItem = TaskItem::find($taskItem);
+        
+        if (!$taskItem) {
+            return response()->json(['ok' => false, 'message' => 'Task not found'], 404);
+        }
+        
         if ($taskItem->project_id !== $project->id || $project->user_id !== Auth::id()) {
             return response()->json(['ok' => false], 403);
         }
@@ -415,8 +432,191 @@ class TaskController extends Controller
             return response()->json(['ok' => false], 403);
         }
 
+        // Mark section and its tasks as deleted by current user
+        $section->deleted_by = Auth::id();
+        $section->save();
+        
+        // Also mark all task items in this section as deleted
+        $section->taskItems()->update(['deleted_by' => Auth::id()]);
+        
         $section->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Get comments for a task
+     */
+    public function getComments(Project $project, $taskItem)
+    {
+        $taskItem = TaskItem::find($taskItem);
+        
+        if (!$taskItem || $taskItem->project_id !== $project->id || $project->user_id !== Auth::id()) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        $comments = $taskItem->comments()->with('user')->get();
+
+        return response()->json([
+            'ok' => true,
+            'comments' => $comments
+        ]);
+    }
+
+    /**
+     * Store a new comment
+     */
+    public function storeComment(Request $request, Project $project, $taskItem)
+    {
+        $taskItem = TaskItem::find($taskItem);
+        
+        if (!$taskItem || $taskItem->project_id !== $project->id || $project->user_id !== Auth::id()) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        $validated = $request->validate([
+            'comment' => 'required|string|max:5000'
+        ]);
+
+        $comment = \App\Models\TaskComment::create([
+            'task_item_id' => $taskItem->id,
+            'user_id' => Auth::id(),
+            'comment' => $validated['comment']
+        ]);
+
+        $comment->load('user');
+
+        return response()->json([
+            'ok' => true,
+            'comment' => $comment
+        ]);
+    }
+
+    /**
+     * Update a comment
+     */
+    public function updateComment(Request $request, Project $project, $taskItem, $comment)
+    {
+        $taskItem = TaskItem::find($taskItem);
+        $comment = \App\Models\TaskComment::find($comment);
+        
+        if (!$taskItem || !$comment || $taskItem->project_id !== $project->id || $project->user_id !== Auth::id() || $comment->task_item_id !== $taskItem->id) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        // Only the comment owner can edit
+        if ($comment->user_id !== Auth::id()) {
+            return response()->json(['ok' => false, 'message' => 'You can only edit your own comments'], 403);
+        }
+
+        $validated = $request->validate([
+            'comment' => 'required|string|max:5000'
+        ]);
+
+        $comment->comment = $validated['comment'];
+        $comment->save();
+
+        $comment->load('user');
+
+        return response()->json([
+            'ok' => true,
+            'comment' => $comment
+        ]);
+    }
+
+    /**
+     * Soft delete a comment
+     */
+    public function deleteComment(Project $project, $taskItem, $comment)
+    {
+        $taskItem = TaskItem::find($taskItem);
+        $comment = \App\Models\TaskComment::find($comment);
+        
+        if (!$taskItem || !$comment || $taskItem->project_id !== $project->id || $project->user_id !== Auth::id() || $comment->task_item_id !== $taskItem->id) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        // Only the comment owner can delete
+        if ($comment->user_id !== Auth::id()) {
+            return response()->json(['ok' => false, 'message' => 'You can only delete your own comments'], 403);
+        }
+
+        $comment->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Get trashed sections and tasks for a project
+     */
+    public function getTrashedItems(Project $project)
+    {
+        if ($project->user_id !== Auth::id()) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        // Get trashed sections with task count
+        $trashedSections = TaskSection::onlyTrashed()
+            ->where('project_id', $project->id)
+            ->withCount('taskItems')
+            ->with('deletedByUser:id,name,email')
+            ->orderBy('deleted_at', 'desc')
+            ->get();
+
+        // Get trashed task items with subtask count and section info
+        $trashedTasks = TaskItem::onlyTrashed()
+            ->where('project_id', $project->id)
+            ->withCount('subtasks')
+            ->with(['taskSection:id,title', 'deletedByUser:id,name,email'])
+            ->orderBy('deleted_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'ok' => true,
+            'sections' => $trashedSections,
+            'tasks' => $trashedTasks
+        ]);
+    }
+
+    /**
+     * Restore a deleted section
+     */
+    public function restoreSection(Project $project, $sectionId)
+    {
+        if ($project->user_id !== Auth::id()) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        $section = TaskSection::onlyTrashed()->find($sectionId);
+        
+        if (!$section || $section->project_id !== $project->id) {
+            return response()->json(['ok' => false, 'message' => 'Section not found'], 404);
+        }
+
+        // Restore section and its task items
+        $section->restore();
+        $section->taskItems()->onlyTrashed()->restore();
+
+        return response()->json(['ok' => true, 'message' => 'Section restored successfully']);
+    }
+
+    /**
+     * Restore a deleted task item
+     */
+    public function restoreTask(Project $project, $taskId)
+    {
+        if ($project->user_id !== Auth::id()) {
+            return response()->json(['ok' => false], 403);
+        }
+
+        $task = TaskItem::onlyTrashed()->find($taskId);
+        
+        if (!$task || $task->project_id !== $project->id) {
+            return response()->json(['ok' => false, 'message' => 'Task not found'], 404);
+        }
+
+        $task->restore();
+
+        return response()->json(['ok' => true, 'message' => 'Task restored successfully']);
     }
 }

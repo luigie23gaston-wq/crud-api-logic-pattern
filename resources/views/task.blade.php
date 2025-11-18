@@ -222,7 +222,7 @@
 
     <!-- JavaScript files -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="{{ asset('js/task.js') }}?v={{ time() }}"></script>
+    <script src="{{ asset('js/task.js') }}?v={{ md5(time() . uniqid()) }}"></script>
     <script src="{{ asset('js/logout.js') }}?v={{ time() }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     
@@ -233,6 +233,12 @@
 
     <!-- Include Subtask Modal (outside of the content wrapper) -->
     @include('modal.subtask_modal')
+
+    <!-- Include Trash Task Archive Modal -->
+    @include('modal.trash_task_modal')
+
+    <!-- Include Delete Confirmation Modal -->
+    @include('modal.task_modal_delete')
 
     </div>
 

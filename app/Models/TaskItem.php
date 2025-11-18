@@ -57,4 +57,20 @@ class TaskItem extends Model
     {
         return $this->hasMany(\App\Models\Subtask::class, 'task_item_id')->orderBy('order');
     }
+
+    /**
+     * Get the comments for this task item
+     */
+    public function comments()
+    {
+        return $this->hasMany(\App\Models\TaskComment::class, 'task_item_id')->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Get the user who deleted this task
+     */
+    public function deletedByUser()
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
+    }
 }

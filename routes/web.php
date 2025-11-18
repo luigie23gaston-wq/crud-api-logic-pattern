@@ -108,10 +108,23 @@ Route::middleware('auth')->group(function () {
     // Subtask management for task items
     Route::get('/tasks/{project}/items/{taskItem}/subtasks', [TaskController::class, 'getSubtasks'])->name('tasks.getSubtasks');
     Route::post('/tasks/{project}/items/{taskItem}/subtasks', [TaskController::class, 'storeSubtask'])->name('tasks.storeSubtask');
-    Route::post('/tasks/{project}/items/{taskItem}/subtasks/{subtask}', [TaskController::class, 'updateSubtask'])->name('tasks.updateSubtask');
-    Route::post('/tasks/{project}/items/{taskItem}/subtasks/{subtask}/toggle', [TaskController::class, 'toggleSubtask'])->name('tasks.toggleSubtask');
-    Route::delete('/tasks/{project}/items/{taskItem}/subtasks/{subtask}', [TaskController::class, 'destroySubtask'])->name('tasks.destroySubtask');
+    // IMPORTANT: Specific routes MUST come before generic {subtask} routes to avoid conflicts
     Route::post('/tasks/{project}/items/{taskItem}/subtasks/reorder', [TaskController::class, 'reorderSubtasks'])->name('tasks.reorderSubtasks');
+    Route::post('/tasks/{project}/items/{taskItem}/subtasks/{subtask}/toggle', [TaskController::class, 'toggleSubtask'])->name('tasks.toggleSubtask');
+    // Generic {subtask} routes come last
+    Route::post('/tasks/{project}/items/{taskItem}/subtasks/{subtask}', [TaskController::class, 'updateSubtask'])->name('tasks.updateSubtask');
+    Route::delete('/tasks/{project}/items/{taskItem}/subtasks/{subtask}', [TaskController::class, 'destroySubtask'])->name('tasks.destroySubtask');
+
+    // Comment routes
+    Route::get('/tasks/{project}/items/{taskItem}/comments', [TaskController::class, 'getComments'])->name('tasks.getComments');
+    Route::post('/tasks/{project}/items/{taskItem}/comments', [TaskController::class, 'storeComment'])->name('tasks.storeComment');
+    Route::put('/tasks/{project}/items/{taskItem}/comments/{comment}', [TaskController::class, 'updateComment'])->name('tasks.updateComment');
+    Route::delete('/tasks/{project}/items/{taskItem}/comments/{comment}', [TaskController::class, 'deleteComment'])->name('tasks.deleteComment');
+    
+    // Trash/Archive routes
+    Route::get('/tasks/{project}/trash', [TaskController::class, 'getTrashedItems'])->name('tasks.trash');
+    Route::post('/tasks/{project}/sections/{section}/restore', [TaskController::class, 'restoreSection'])->name('tasks.restoreSection');
+    Route::post('/tasks/{project}/items/{taskItem}/restore', [TaskController::class, 'restoreTask'])->name('tasks.restoreTask');
 });
 
 
