@@ -1432,6 +1432,14 @@ html, body {
     z-index: 10;
 }
 
+/* Active drag-over state for sections */
+.task-section.section-drag-over {
+    border: 2px solid #8b5cf6 !important;
+    background: rgba(139, 92, 246, 0.08);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+    transform: scale(1.02);
+}
+
 /* Subtask drag-and-drop styles */
 .subtask-item {
     cursor: move;

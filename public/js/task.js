@@ -64,6 +64,134 @@ function taskManager() {
             this.loadSections();
         },
         
+        // ========== SECTION DRAG-AND-DROP METHODS ==========
+        
+        sectionDragStart(event, section) {
+            this.draggedSection = section;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/html', event.target.innerHTML);
+            
+            // Add visual feedback
+            requestAnimationFrame(() => {
+                event.target.style.opacity = '0.5';
+            });
+        },
+        
+        sectionDragEnd(event) {
+            // Reset opacity
+            event.target.style.opacity = '1';
+            this.draggedSection = null;
+            
+            // Clean up any drag-over styling
+            document.querySelectorAll('.task-section').forEach(el => {
+                el.classList.remove('section-drag-over');
+            });
+        },
+        
+        sectionAllowDrop(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        },
+        
+        sectionDragEnter(event) {
+            const sectionEl = event.currentTarget;
+            if (sectionEl && this.draggedSection) {
+                sectionEl.classList.add('section-drag-over');
+            }
+        },
+        
+        sectionDragLeave(event) {
+            const sectionEl = event.currentTarget;
+            if (sectionEl) {
+                sectionEl.classList.remove('section-drag-over');
+            }
+        },
+        
+        async sectionDrop(event, targetSection) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const targetEl = event.currentTarget;
+            targetEl.classList.remove('section-drag-over');
+            
+            if (!this.draggedSection || this.draggedSection.id === targetSection.id) {
+                return;
+            }
+            
+            // Get current indexes
+            const fromIndex = this.sections.findIndex(s => s.id === this.draggedSection.id);
+            const toIndex = this.sections.findIndex(s => s.id === targetSection.id);
+            
+            if (fromIndex === -1 || toIndex === -1) {
+                console.error('Section indexes not found');
+                return;
+            }
+            
+            // Optimistic UI update
+            const [movedSection] = this.sections.splice(fromIndex, 1);
+            this.sections.splice(toIndex, 0, movedSection);
+            
+            // Update order values
+            this.sections.forEach((section, index) => {
+                section.order = index + 1;
+            });
+            
+            try {
+                await this._reorderSectionsInBackend();
+                this.showToast('Section reordered successfully');
+            } catch (error) {
+                console.error('Error reordering sections:', error);
+                // Reload to sync with server on failure
+                this.loadSections();
+                this.showToast('Error reordering sections');
+            }
+        },
+        
+        async _reorderSectionsInBackend() {
+            const reorderedSections = this.sections.map((section, index) => ({
+                id: section.id,
+                order: index + 1
+            }));
+            
+            const data = await this._fetch(`/tasks/${this.projectId}/sections/reorder`, {
+                method: 'POST',
+                body: { sections: reorderedSections }
+            });
+            
+            if (!data.ok) {
+                throw new Error('Failed to reorder sections');
+            }
+            
+            return data;
+        },
+        
+        // ========== END SECTION DRAG-AND-DROP METHODS ==========
+        
+        // ========== TASK CARD DRAG STUBS (Disabled - See DRAG_ISSUE_ROOT_CAUSE_AND_FIX.md) ==========
+        // These methods exist to prevent console errors but don't perform dragging
+        // Task card dragging is disabled due to Alpine.js x-for conflicts with SortableJS
+        
+        allowDrop(event) {
+            // Disabled: Task card dragging not compatible with Alpine x-for
+            event.preventDefault();
+        },
+        
+        dragEnter(event) {
+            // Disabled: Task card dragging not compatible with Alpine x-for
+        },
+        
+        dragLeave(event) {
+            // Disabled: Task card dragging not compatible with Alpine x-for
+        },
+        
+        drop(event, sectionId) {
+            // Disabled: Task card dragging not compatible with Alpine x-for
+            event.preventDefault();
+        },
+        
+        // ========== END TASK CARD DRAG STUBS ==========
+
+        
         // Optimized section loading with caching
         async loadSections() {
             try {
